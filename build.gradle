@@ -26,7 +26,7 @@ checkstyle {
 // Code Formatter (enforces Google Java Format)
 spotless {
     java {
-        target 'core/src/**/*.java', 'lwjgl3/src/**/*.java'
+        target 'core/src/**/*.java', 'lwjgl3/src/**/*.java', 'teavm/src/**/*.java'
         googleJavaFormat('1.22.0')
         removeUnusedImports()
         trimTrailingWhitespace()
