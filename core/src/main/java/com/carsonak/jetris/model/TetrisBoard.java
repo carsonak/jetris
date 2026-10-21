@@ -1,6 +1,14 @@
 package com.carsonak.jetris.model;
 
 public class TetrisBoard implements GameEngine {
+  public static final int DEFAULT_WIDTH = 10;
+  public static final int DEFAULT_HEIGHT = 20;
+
+  public TetrisBoard(PieceGenerator pieceGenerator) {
+    this(DEFAULT_WIDTH, DEFAULT_HEIGHT, pieceGenerator);
+  }
+
+  public TetrisBoard(int width, int height, PieceGenerator pieceGenerator) {}
 
   @Override
   public void tick() {
