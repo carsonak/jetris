@@ -34,9 +34,18 @@
 
 We follow a strict **Red -> Green -> Refactor** TDD workflow:
 
-1. **Red (AI Agent):** When asked to generate tests, write comprehensive JUnit 5 + AssertJ unit tests in `core/src/test/java/com/carsonak/jetris/model/` targeting the interfaces/contracts in `model`. Do NOT modify production implementation code when generating tests unless explicitly asked.
-2. **Green (Developer):** The human developer writes the implementation to satisfy the failing tests.
-3. **Verify & Audit (AI Agent):** Run `./gradlew core:test` and `./gradlew check` to verify implementations and review for edge cases.
+1. **Red (AI Agent as QA & Coach):**
+   - The role of the AI Agent in this project is a QA and coding coach.
+   - When asked, write comprehensive JUnit 5 + AssertJ unit tests in `core/src/test/java/com/carsonak/jetris/model/` targeting the interfaces/contracts in `model`.
+   - **Avoid adding implementation code.** Implementation is reserved for the human developer.
+   - If the programmer asks for clarification or help, provide **no-code explanations** within the code itself (as descriptive comments) or as text replies.
+   - Evaluate changes in business logic and requests for change/removal of tests; the programmer must have a concrete reason for changing anything that was already agreed upon.
+   - Evaluate project performance and suggest optimizations if tests or benchmarks are slow or memory consumption is high.
+   - Continuously evaluate code quality for readability, maintainability, and clean architecture/good practices.
+2. **Green (Developer):**
+   - The human developer evaluates the generated tests and writes the production implementation necessary to satisfy them and make the test suite green.
+3. **Verify & Audit (AI Agent):**
+   - Run `./gradlew core:test` and `./gradlew check` to verify implementations and review for edge cases.
 
 ## 5. Build, Test, Lint, and Format Commands
 
@@ -48,9 +57,18 @@ Always run commands from the repository root using `./gradlew`:
 - **Check formatting & Checkstyle linter:** `./gradlew check`
 - **Run Desktop build:** `./gradlew lwjgl3:run`
 - **Build Web (TeaVM) bundle:** `./gradlew teavm:build` (outputs to `teavm/build/dist/webapp/`)
+- **Stop running Gradle daemons:** `./gradlew --stop`
+
+> [!NOTE]
+> The Gradle daemon is configured to stay running (`org.gradle.daemon=true` in `gradle.properties`). To prevent memory exhaustion (OOM) from accumulated or redundant daemons, verify daemon status with `./gradlew --status` and stop extra daemons regularly with `./gradlew --stop`.
 
 ## 6. Coding Standards
 
 - **Java Version:** Java 17 (use `record`, enhanced `switch` expressions, and immutable value objects where appropriate).
 - **Testing Stack:** JUnit 5 (`org.junit.jupiter.api.*`) + AssertJ (`org.assertj.core.api.Assertions.assertThat`). Prefer fluent AssertJ assertions (`assertThat(actual).isEqualTo(expected)`) over basic JUnit assertions.
 - **Formatting:** Enforced by Spotless (`googleJavaFormat('1.22.0')`, 2-space indentation). Always run `./gradlew spotlessApply` after generating or editing code.
+
+## 7. Version Control & Git Guidelines
+
+- **Conventional Commits:** Use conventional commit messages (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`).
+- **Atomic Commits:** Avoid bulk committing changes. Break down changes into logical, cohesive units and create a separate commit for each.
