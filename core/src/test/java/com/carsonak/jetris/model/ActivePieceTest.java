@@ -1,11 +1,15 @@
 package com.carsonak.jetris.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @DisplayName("ActivePiece Model Tests")
 class ActivePieceTest {
@@ -15,7 +19,8 @@ class ActivePieceTest {
   class MovementTests {
 
     @Test
-    @DisplayName("moveBy() should shift coordinates by dx and dy without mutating original instance")
+    @DisplayName(
+        "moveBy() should shift coordinates by dx and dy without mutating original instance")
     void shouldShiftCoordinatesAndPreserveImmutability() {
       ActivePiece initial = new ActivePiece(Tetromino.T, 3, 5, 0);
 
@@ -43,7 +48,8 @@ class ActivePieceTest {
   class RotationCycleTests {
 
     @Test
-    @DisplayName("rotateClockwise() should cycle rotationIndex 0 -> 1 -> 2 -> 3 -> 0 preserving position")
+    @DisplayName(
+        "rotateClockwise() should cycle rotationIndex 0 -> 1 -> 2 -> 3 -> 0 preserving position")
     void shouldCycleRotationIndexMod4() {
       ActivePiece r0 = new ActivePiece(Tetromino.I, 3, 0, 0);
 
@@ -108,10 +114,7 @@ class ActivePieceTest {
 
       assertThat(cells)
           .containsExactlyInAnyOrder(
-              new Point(3, 1),
-              new Point(4, 1),
-              new Point(5, 1),
-              new Point(6, 1));
+              new Point(3, 1), new Point(4, 1), new Point(5, 1), new Point(6, 1));
     }
 
     @Test
@@ -123,10 +126,7 @@ class ActivePieceTest {
 
       assertThat(cells)
           .containsExactlyInAnyOrder(
-              new Point(5, 0),
-              new Point(5, 1),
-              new Point(5, 2),
-              new Point(5, 3));
+              new Point(5, 0), new Point(5, 1), new Point(5, 2), new Point(5, 3));
     }
 
     @Test
@@ -138,10 +138,7 @@ class ActivePieceTest {
 
       assertThat(cells)
           .containsExactlyInAnyOrder(
-              new Point(3, 2),
-              new Point(4, 2),
-              new Point(5, 2),
-              new Point(6, 2));
+              new Point(3, 2), new Point(4, 2), new Point(5, 2), new Point(6, 2));
     }
 
     @Test
@@ -153,10 +150,7 @@ class ActivePieceTest {
 
       assertThat(cells)
           .containsExactlyInAnyOrder(
-              new Point(4, 0),
-              new Point(4, 1),
-              new Point(4, 2),
-              new Point(4, 3));
+              new Point(4, 0), new Point(4, 1), new Point(4, 2), new Point(4, 3));
     }
   }
 
@@ -174,7 +168,8 @@ class ActivePieceTest {
      */
 
     @Test
-    @DisplayName("Rotations 0 through 3: Tetromino.O occupied cells remain invariant under rotation")
+    @DisplayName(
+        "Rotations 0 through 3: Tetromino.O occupied cells remain invariant under rotation")
     void shouldReturnInvariantOccupiedCellsAcrossAllOrientations() {
       int originX = 4;
       int originY = 5;
@@ -312,10 +307,98 @@ class ActivePieceTest {
       // (col 1, row 2) -> (5, 4)
       assertThat(shiftedAndRotated.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(5, 2),
-              new Point(5, 3),
-              new Point(6, 3),
-              new Point(5, 4));
+              new Point(5, 2), new Point(5, 3), new Point(6, 3), new Point(5, 4));
+    }
+  }
+
+  @Nested
+  @DisplayName("Whitebox: Invariants, Edge Cases & Invalid States")
+  class WhiteboxInvariantsAndEdgeCaseTests {
+
+    @Test
+    @DisplayName("Compact constructor should reject null Tetromino type with NullPointerException")
+    void shouldThrowNullPointerExceptionWhenTypeIsNull() {
+      assertThatThrownBy(() -> new ActivePiece(null, 0, 0, 0))
+          .isInstanceOf(NullPointerException.class)
+          .hasMessage("Tetromino type cannot be null");
+    }
+
+    @ParameterizedTest(name = "raw rotationIndex {0} should normalize to {1}")
+    @CsvSource({
+      "0, 0", "1, 1", "2, 2", "3, 3", "4, 0", "5, 1", "6, 2", "7, 3", "100, 0", "-1, 3", "-2, 2",
+      "-3, 1", "-4, 0", "-5, 3"
+    })
+    @DisplayName(
+        "Compact constructor should normalize positive and negative rotationIndex values into [0, 3]")
+    void shouldNormalizeRotationIndexIntoValidRange(int rawRotation, int expectedNormalized) {
+      ActivePiece piece = new ActivePiece(Tetromino.T, 3, 0, rawRotation);
+
+      assertThat(piece.rotationIndex()).isEqualTo(expectedNormalized);
+    }
+
+    @Test
+    @DisplayName(
+        "Pieces with equivalent mod-4 rotationIndex should be equal and occupy identical cells")
+    void shouldTreatEquivalentMod4RotationsAsEqual() {
+      ActivePiece canonical = new ActivePiece(Tetromino.L, 2, 3, 3);
+      ActivePiece fromNegative = new ActivePiece(Tetromino.L, 2, 3, -1);
+      ActivePiece fromLargePositive = new ActivePiece(Tetromino.L, 2, 3, 7);
+
+      assertThat(fromNegative).isEqualTo(canonical);
+      assertThat(fromLargePositive).isEqualTo(canonical);
+      assertThat(fromNegative.getOccupiedCells()).isEqualTo(canonical.getOccupiedCells());
+      assertThat(fromLargePositive.getOccupiedCells()).isEqualTo(canonical.getOccupiedCells());
+    }
+
+    @ParameterizedTest
+    @EnumSource(Tetromino.class)
+    @DisplayName(
+        "Invariant: every Tetromino in every rotation [0..3] occupies exactly 4 distinct cells inside its N x N bounding box")
+    void everyTetrominoInAllRotationsShouldHaveFourDistinctCellsInBoundingBox(Tetromino type) {
+      int originX = -3;
+      int originY = -2;
+      int matrixSize = type.getBaseShape().length;
+
+      for (int rot = 0; rot < 4; rot++) {
+        ActivePiece piece = new ActivePiece(type, originX, originY, rot);
+        List<Point> cells = piece.getOccupiedCells();
+
+        assertThat(cells)
+            .as("%s at rotation %d must have 4 distinct cells", type, rot)
+            .hasSize(4)
+            .doesNotHaveDuplicates();
+
+        for (Point cell : cells) {
+          assertThat(cell.x())
+              .as("%s rot %d cell x within bounding box", type, rot)
+              .isBetween(originX, originX + matrixSize - 1);
+          assertThat(cell.y())
+              .as("%s rot %d cell y within bounding box", type, rot)
+              .isBetween(originY, originY + matrixSize - 1);
+        }
+      }
+    }
+
+    @Test
+    @DisplayName(
+        "Edge case: negative piece origin (e.g., Tetromino.I at x = -1 in rotation 3) places cells at left wall x = 0")
+    void shouldAllowNegativeOriginCoordinatesForWallAlignment() {
+      ActivePiece leftWallIPiece = new ActivePiece(Tetromino.I, -1, -1, 3);
+
+      assertThat(leftWallIPiece.getOccupiedCells())
+          .containsExactlyInAnyOrder(
+              new Point(0, -1), new Point(0, 0), new Point(0, 1), new Point(0, 2));
+    }
+
+    @Test
+    @DisplayName(
+        "Edge case: moveBy(0, 0) should produce an equal piece with identical occupied cells")
+    void shouldHandleZeroDisplacementMove() {
+      ActivePiece piece = new ActivePiece(Tetromino.S, 4, 8, 2);
+      ActivePiece unmoved = piece.moveBy(0, 0);
+
+      assertThat(unmoved).isEqualTo(piece);
+      assertThat(unmoved.getOccupiedCells()).isEqualTo(piece.getOccupiedCells());
     }
   }
 }
