@@ -22,26 +22,30 @@
   - Moving **Left** decreases `x` (`-1`).
   - Moving **Down** (gravity/drop) increases `y` (`+1`).
   - Floor boundary is `y == height - 1` (`19`).
-- **Piece Rotation & Wall Kicks:**
-  - `rotationIndex` cycles `0 -> 1 -> 2 -> 3 -> 0` for 90-degree clockwise rotations.
-  - Matrix rotation formula (90° CW on an $N \times N$ matrix): `rotated[col][N - 1 - row] = original[row][col]`.
-  - **Simple Wall/Floor Kick Offset Table:** When `rotateClockwise()` is called, test the rotated piece at candidate `(dx, dy)` offsets in this exact order:
+- **Piece Representation, Rotation & Wall Kicks:**
+  - **`Tetromino` Encapsulation:** `Tetromino` does NOT expose an `int[][]` matrix. Instead, it exposes `List<Point> getBaseCells()` (the 4 local block coordinates at `rotationIndex = 0`, flushed to the top-left origin so `minX == 0` and `minY == 0`), along with `getWidth()` and `getHeight()`.
+  - **`ActivePiece` Rotation & Top-Left Normalization:**
+    - `rotationIndex` is normalized into `[0, 3]` via `Math.floorMod(rotationIndex, 4)`.
+    - `rotateClockwise()` increments `rotationIndex` (`0 -> 1 -> 2 -> 3 -> 0`); `rotateAnticlockwise()` decrements `rotationIndex` (`0 -> 3 -> 2 -> 1 -> 0`).
+    - To compute `getOccupiedCells()`, each base point `(x, y)` from `type.getBaseCells()` is rotated 90° clockwise `rotationIndex` times via `(rotX, rotY) -> (-rotY, rotX)`, normalized by subtracting `(minX, minY)` across the 4 rotated points so `minX == 0` and `minY == 0` in every orientation (preventing blank leading rows/columns and "invisible wall/floor" effects), and finally translated by adding `(this.x, this.y)`.
+  - **Simple Wall/Floor Kick Offset Table:** When `rotateClockwise()` or `rotateAnticlockwise()` is called on `TetrisBoard`, test the rotated piece at candidate `(dx, dy)` offsets in this exact order:
     1. `(0, 0)` (no offset)
     2. `(-1, 0)` (1 cell left)
     3. `(+1, 0)` (1 cell right)
     4. `(-2, 0)` (2 cells left — e.g., `Tetromino.I` against right wall)
     5. `(+2, 0)` (2 cells right — e.g., `Tetromino.I` against left wall)
     6. `(0, -1)` (1 cell up — floor kick)
-  - Pick the **first** offset where all occupied cells are within board bounds and do not overlap any locked blocks (`rotateClockwise()` updates `activePiece` and returns `true`). If all 6 offsets collide, the rotation is rejected (`rotateClockwise()` returns `false` and state is unchanged).
+  - Pick the **first** offset where all occupied cells are within board bounds (`0 <= x < width`, `0 <= y < height`) and do not overlap any locked blocks (`rotateClockwise()` / `rotateAnticlockwise()` updates `activePiece` and returns `true`). If all 6 offsets collide, the rotation is rejected (`false` and state is unchanged).
 - **Spawning & Game Over:**
-  - New pieces spawn at top-center: `x = (width - matrixSize) / 2`, `y = 0`, `rotationIndex = 0`.
+  - New pieces spawn at top-center: `x = (width - type.getWidth()) / 2`, `y = 0`, `rotationIndex = 0`.
   - If a newly spawned piece immediately overlaps an existing locked block on the board, `isGameOver()` becomes `true` and further movement/ticks are ignored until `reset()` is called.
 - **Line Clearing & Scoring:**
   - When a piece locks, any completely filled horizontal rows are cleared and all rows above them shift down (`+1` in `y`).
-  - **Dynamic Width-Aware Scoring Formula:** For `n` lines cleared simultaneously on a board of `width`:
-    $$\text{points} = \text{round}\!\left(\frac{1000.0}{\text{width}} \cdot n^{1.5}\right) \quad \Longleftrightarrow \quad \texttt{(int) Math.round((1000.0 / width) * Math.pow(n, 1.5))}$$
-    - On a standard `width = 10` board: `1 line = 100`, `2 lines = 283`, `3 lines = 520`, `4 lines = 800`, `5 lines = 1118`.
-    - Wider boards have a lower base constant (`1000.0 / width`), while narrower boards have a higher base constant.
+  - **4-Line Maximum Invariant & Fixed Scoring:** Because the tallest standard `Tetromino` (`I`) has a maximum height of 4 blocks, a single piece lock can clear at most 4 lines (`0 <= linesCleared <= 4`). Standard fixed scoring per clear event:
+    - `1 line = 100`
+    - `2 lines = 300`
+    - `3 lines = 500`
+    - `4 lines (Tetris) = 800`
 
 ## 4. TDD Workflow & Role Division
 
