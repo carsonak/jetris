@@ -10,8 +10,18 @@ public interface GameEngine extends BoardState {
   /** Attempts to shift active piece right by 1 column. Returns true if moved, false if blocked. */
   boolean moveRight();
 
-  /** Attempts to rotate active piece 90 degrees CW. Returns true if rotated, false if blocked. */
+  /**
+   * Attempts to rotate active piece 90 degrees clockwise, applying wall/floor kick offsets if
+   * obstructed. Returns true if rotated, false if all kick offsets are blocked.
+   */
   boolean rotateClockwise();
+
+  /**
+   * Attempts to rotate active piece 90 degrees anticlockwise (counter-clockwise), applying
+   * wall/floor kick offsets if obstructed. Returns true if rotated, false if all kick offsets are
+   * blocked.
+   */
+  boolean rotateAnticlockwise();
 
   /** Moves piece down 1 row; if blocked, locks piece immediately and spawns next piece. */
   void softDrop();
