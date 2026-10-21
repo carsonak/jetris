@@ -1,16 +1,21 @@
 package com.carsonak.jetris.model;
 
-import java.util.List;
 import java.util.ArrayList;
-import com.carsonak.jetris.model.Point;
+import java.util.List;
+import java.util.Objects;
 
 public record ActivePiece(Tetromino type, int x, int y, int rotationIndex) {
+  public ActivePiece {
+    Objects.requireNonNull(type, "Tetromino type cannot be null");
+    rotationIndex = Math.floorMod(rotationIndex, 4);
+  }
+
   /**
    * Returns the absolute board coordinates (Point(x, y)) occupied by this piece's solid blocks in
    * its current position and rotation.
    */
   public List<Point> getOccupiedCells() {
-    var positions = new ArrayList<Point>();
+    var positions = new ArrayList<Point>(4);
     var shape = type.getBaseShape();
 
     for (int r = 0; r < shape.length; r++) {
@@ -21,7 +26,8 @@ public record ActivePiece(Tetromino type, int x, int y, int rotationIndex) {
           continue;
         }
 
-        int posX = c, posY = r;
+        int posX = c;
+        int posY = r;
 
         for (int rot = 0; rot < rotationIndex; rot++) {
           // Rotation formula: (X, Y) → (N - 1 - Y, X)
@@ -43,6 +49,6 @@ public record ActivePiece(Tetromino type, int x, int y, int rotationIndex) {
   }
 
   public ActivePiece rotateClockwise() {
-    return new ActivePiece(type, x, y, (rotationIndex + 1) % 4);
+    return new ActivePiece(type, x, y, rotationIndex + 1);
   }
 }
