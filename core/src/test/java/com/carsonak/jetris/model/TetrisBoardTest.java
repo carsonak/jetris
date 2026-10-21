@@ -55,15 +55,15 @@ class TetrisBoardTest {
 
       assertThat(board.getWidth()).isEqualTo(8);
       assertThat(board.getHeight()).isEqualTo(16);
-      // 2x2 O piece on width 8 spawns at x = (8 - 2) / 2 = 3, y = 0
+      // 2-wide O piece on width 8 spawns at x = (8 - 2) / 2 = 3, y = 0
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.O, 3, 0, 0));
       assertThat(board.getNextPiecePreview()).isEqualTo(Tetromino.T);
     }
 
     @Test
     @DisplayName(
-        "3x3 Tetromino (e.g. T) should spawn at top-center x = (10 - 3) / 2 = 3, y = 0, rotation 0")
-    void shouldSpawn3x3PieceAtTopCenterAndPopulatePreview() {
+        "3-wide Tetromino (e.g. T) should spawn at top-center x = (10 - 3) / 2 = 3, y = 0, rotation 0")
+    void shouldSpawn3WidePieceAtTopCenterAndPopulatePreview() {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.T, Tetromino.L));
 
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 0, 0));
@@ -72,8 +72,8 @@ class TetrisBoardTest {
 
     @Test
     @DisplayName(
-        "4x4 Tetromino (I) should spawn at top-center x = (10 - 4) / 2 = 3, y = 0, rotation 0")
-    void shouldSpawn4x4PieceAtTopCenter() {
+        "4-wide Tetromino (I) should spawn at top-center x = (10 - 4) / 2 = 3, y = 0, rotation 0")
+    void shouldSpawn4WidePieceAtTopCenter() {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I, Tetromino.S));
 
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 0, 0));
@@ -82,8 +82,8 @@ class TetrisBoardTest {
 
     @Test
     @DisplayName(
-        "2x2 Tetromino (O) should spawn at top-center x = (10 - 2) / 2 = 4, y = 0, rotation 0")
-    void shouldSpawn2x2PieceAtTopCenter() {
+        "2-wide Tetromino (O) should spawn at top-center x = (10 - 2) / 2 = 4, y = 0, rotation 0")
+    void shouldSpawn2WidePieceAtTopCenter() {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O, Tetromino.Z));
 
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.O, 4, 0, 0));
@@ -124,7 +124,7 @@ class TetrisBoardTest {
     }
 
     @Test
-    @DisplayName("moveRight() should stop at right wall (x = width - 1) and return false")
+    @DisplayName("moveRight() should stop at right wall (x = width - pieceWidth) and return false")
     void shouldRejectMoveRightAgainstRightWall() {
       // O spawns at x = 4, occupies cols 4 and 5
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O));
@@ -141,24 +141,25 @@ class TetrisBoardTest {
 
     @Test
     @DisplayName(
-        "Tetromino.I in vertical rotation 3 should allow negative origin x = -1 so solid column aligns with left wall x = 0")
-    void shouldAllowNegativeBoundingBoxOriginWhenSolidCellsRemainInBounds() {
+        "Tetromino.I in vertical rotation 1 should align cleanly with left wall at x = 0 and right wall at x = 9")
+    void verticalIPieceShouldAlignCleanlyWithBothWallsWithoutNegativeOrigins() {
       // I spawns at x = 3, y = 0
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I));
-      // Rotate 3 times to rotationIndex = 3 (solid cells at col x + 1)
-      assertThat(board.rotateClockwise()).isTrue();
-      assertThat(board.rotateClockwise()).isTrue();
-      assertThat(board.rotateClockwise()).isTrue();
+      assertThat(board.rotateClockwise()).isTrue(); // rotation 1: 1x4 vertical bar at col x
 
-      assertThat(board.moveLeft()).isTrue(); // x = 2 (solid col 3)
-      assertThat(board.moveLeft()).isTrue(); // x = 1 (solid col 2)
-      assertThat(board.moveLeft()).isTrue(); // x = 0 (solid col 1)
-      assertThat(board.moveLeft()).isTrue(); // x = -1 (solid col 0)
-
-      assertThat(board.getActivePiece().x()).isEqualTo(-1);
-      // Moving left once more would place solid cells at col -1 (out of bounds)
+      assertThat(board.moveLeft()).isTrue(); // x = 2
+      assertThat(board.moveLeft()).isTrue(); // x = 1
+      assertThat(board.moveLeft()).isTrue(); // x = 0 (left wall!)
       assertThat(board.moveLeft()).isFalse();
-      assertThat(board.getActivePiece().x()).isEqualTo(-1);
+      assertThat(board.getActivePiece().x()).isZero();
+
+      for (int expectedX = 1; expectedX <= 9; expectedX++) {
+        assertThat(board.moveRight()).isTrue();
+        assertThat(board.getActivePiece().x()).isEqualTo(expectedX);
+      }
+      // At right wall x = 9
+      assertThat(board.moveRight()).isFalse();
+      assertThat(board.getActivePiece().x()).isEqualTo(9);
     }
 
     @Test
@@ -168,14 +169,12 @@ class TetrisBoardTest {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O, Tetromino.O, Tetromino.O));
       board.hardDrop();
 
-      // Second piece O moves left to cols 2, 3, then drops almost to the bottom (row 18, 19)
+      // Second piece O moves left to cols 2, 3, then drops almost to the bottom (rows 18, 19)
       board.moveLeft();
       board.moveLeft();
       for (int i = 0; i < 18; i++) {
         board.tick();
       }
-      // Second O is now at x = 2, y = 18 (occupying cols 2, 3 at rows 18, 19), adjacent to locked O
-      // at cols 4, 5
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.O, 2, 18, 0));
 
       // Moving right into cols 4, 5 should be rejected
@@ -185,60 +184,41 @@ class TetrisBoardTest {
   }
 
   @Nested
-  @DisplayName("3. Rotation, Wall/Floor Kicks & Collision Rejection")
+  @DisplayName("3. Clockwise & Anticlockwise Rotation, Wall/Floor Kicks & Collision Rejection")
   class RotationAndWallKickTests {
 
     @Test
-    @DisplayName("rotateClockwise() should rotate piece in-place (offset 0, 0) when unobstructed")
-    void shouldRotateClockwiseInPlaceWhenUnobstructed() {
+    @DisplayName(
+        "rotateClockwise() and rotateAnticlockwise() should rotate piece in-place (offset 0, 0) when unobstructed")
+    void shouldRotateClockwiseAndAnticlockwiseInPlaceWhenUnobstructed() {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.T));
 
-      boolean rotated = board.rotateClockwise();
-
-      assertThat(rotated).isTrue();
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 0, 1));
-    }
-
-    @Test
-    @DisplayName(
-        "Wall kick (+1, 0): rotating against left wall should shift piece right by 1 column")
-    void shouldKickRightBy1WhenRotatingAgainstLeftWall() {
-      // I spawns at (3, 0), rotate 3 times to vertical rotation 3 (solid col at x + 1)
-      TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I));
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.rotateClockwise();
-
-      // Move all the way to the left wall: x = -1 (solid cells at col 0)
-      while (board.moveLeft()) {
-        // shift to left wall
-      }
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, -1, 0, 3));
-
-      // Rotating CW to rotation 0 at x = -1 would put horizontal bar at cols -1..2 (invalid).
-      // Offset (-1, 0) -> x = -2 (invalid).
-      // Offset (+1, 0) -> x = 0 (cols 0..3, valid!)
       assertThat(board.rotateClockwise()).isTrue();
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 0, 0, 0));
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 0, 1));
+
+      assertThat(board.rotateAnticlockwise()).isTrue();
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 0, 0));
+
+      assertThat(board.rotateAnticlockwise()).isTrue();
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 0, 3));
     }
 
     @Test
     @DisplayName(
-        "Wall kick (-1, 0): rotating T-piece against right wall should shift piece left by 1 column")
-    void shouldKickLeftBy1WhenRotatingAgainstRightWall() {
-      // T spawns at (3, 0), rotate 3 times to rotation 3 (pointing left: solid cols x+0 and x+1)
+        "Wall kick (-1, 0): rotating 2-wide T-piece (rotation 3) at right wall (x = 8) into 3-wide rotation 0 should kick left by 1 to x = 7")
+    void shouldKickLeftBy1WhenRotatingTAgainstRightWall() {
+      // T spawns at (3, 0), rotate anticlockwise once to rotation 3 (2 cells wide: cols x and x+1)
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.T));
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.rotateClockwise();
+      assertThat(board.rotateAnticlockwise()).isTrue();
 
-      // Move all the way to right wall: x = 8 (solid cols 8 and 9)
+      // Move all the way to right wall: x = 8 (occupies cols 8 and 9)
       while (board.moveRight()) {
         // shift to right wall
       }
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 8, 0, 3));
 
-      // Rotating CW to rotation 0 at x = 8 would need cols 8, 9, 10 (col 10 out of bounds).
+      // Rotating CW to rotation 0 (3 cells wide: cols x, x+1, x+2):
+      // Offset (0, 0) at x = 8 needs cols 8, 9, 10 (col 10 out of bounds).
       // Offset (-1, 0) shifts x to 7 (cols 7, 8, 9 -> valid!)
       assertThat(board.rotateClockwise()).isTrue();
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 7, 0, 0));
@@ -246,42 +226,111 @@ class TetrisBoardTest {
 
     @Test
     @DisplayName(
-        "Wall kick (-2, 0): rotating vertical Tetromino.I (rotation 1) against right wall should kick left by 2 columns")
-    void shouldKickLeftBy2WhenRotatingIPieceAgainstRightWall() {
-      // I spawns at (3, 0), rotate once to rotation 1 (solid col at x + 2)
+        "Wall kick (-2, 0): rotating vertical Tetromino.I at right wall (x = 8) into 4-wide horizontal should kick left by 2 to x = 6")
+    void shouldKickLeftBy2WhenRotatingIPieceNearRightWall() {
+      // I spawns at (3, 0), rotate CW once to rotation 1 (1x4 vertical bar)
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I));
-      board.rotateClockwise();
-
-      // Move all the way to right wall: x = 7 (solid col at 7 + 2 = 9)
-      while (board.moveRight()) {
-        // shift to right wall
-      }
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 7, 0, 1));
-
-      // Rotating CW to rotation 2 (horizontal bar at cols x..x+3):
-      // (0, 0) -> x = 7 (cols 7..10, invalid)
-      // (-1, 0) -> x = 6 (cols 6..9, valid!) -> Wait: for rotation 3 (solid col x + 1) at right
-      // wall x = 8 (solid col 9), rotating CW to rotation 0 needs cols x..x+3:
-      // At x = 8: (0,0)->x=8 (cols 8..11), (-1,0)->x=7 (cols 7..10), (+1,0)->x=9, (-2,0)->x=6
-      // (cols 6..9, valid!)
-      // Let's test from rotation 3 at right wall x = 8!
-      board.rotateClockwise(); // rot 2 (kicks to x = 6)
-      board.rotateClockwise(); // rot 3 at x = 6
-      while (board.moveRight()) {
-        // shift rot 3 to right wall: x = 8 (solid col at 8 + 1 = 9)
-      }
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 8, 0, 3));
-
-      // Rotating CW from rot 3 to rot 0 at x = 8 requires (-2, 0) kick to x = 6!
       assertThat(board.rotateClockwise()).isTrue();
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 6, 0, 0));
+
+      // Move right 5 times to x = 8 (1 column away from right wall)
+      for (int i = 0; i < 5; i++) {
+        assertThat(board.moveRight()).isTrue();
+      }
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 8, 0, 1));
+
+      // Rotating CW (or CCW) to horizontal (4 cells wide: cols x..x+3):
+      // (0, 0) -> x = 8 (cols 8..11, invalid)
+      // (-1, 0) -> x = 7 (cols 7..10, invalid)
+      // (+1, 0) -> x = 9 (cols 9..12, invalid)
+      // (-2, 0) -> x = 6 (cols 6..9, valid!)
+      assertThat(board.rotateClockwise()).isTrue();
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 6, 0, 2));
     }
 
     @Test
     @DisplayName(
-        "Floor kick (0, -1): rotating horizontal T-piece at floor should kick upward by 1 row")
+        "Wall kick (+1, 0): rotating when blocked on the left by a locked block should kick right by 1 column")
+    void shouldKickRightBy1WhenBlockedOnLeftByLockedBlock() {
+      // Piece 1: Drop vertical I-piece at col 0 (locks at x = 0, rows 16..19)
+      TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I, Tetromino.T, Tetromino.O));
+      board.rotateClockwise();
+      while (board.moveLeft()) {
+        // move to col 0
+      }
+      board.hardDrop();
+      assertThat(board.getLockedBlockAt(0, 18)).isEqualTo(Tetromino.I);
+
+      // Piece 2: T-piece rotated to rotation 1 (2x3, pointing right), moved to x = 0, dropped to y
+      // = 15 (just above locked I at col 0, rows 16..19).
+      // Better yet: drop O-piece at cols 0, 1 (rows 18, 19), then bring T in rotation 3 (2x3:
+      // occupies (x, y+1), (x+1, y), (x+1, y+1), (x+1, y+2)) to x = 1, y = 17!
+      // At x = 1, y = 17, T in rotation 1 occupies: (1, 17), (1, 18), (2, 18), (1, 19).
+      // Wait: with locked I at col 0 (rows 16..19), if T in rotation 0 (3x2) is at x = 0, y = 14,
+      // what if T is at x = 0, y = 16 in rotation 3? In rotation 3 at x = 0, y = 16, it occupies
+      // (1, 16), (0, 17), (1, 17), (1, 18) -> (0, 17) overlaps locked I!
+      // Whereas T in rotation 3 at x = 1, y = 16 occupies (2, 16), (1, 17), (2, 17), (2, 18) (all
+      // free!).
+      // What if we have locked I at col 1 (x = 1, rows 16..19), and vertical I at x = 0, y = 16?
+      // Let's trace: if T is at x = 0, y = 16 in rotation 1? No, col 0 is free!
+      // Suppose locked I is at col 0 (rows 16..19), and we bring a vertical I (1x4) to x = 1, y =
+      // 16? No, rotating at x = 1 doesn't overlap col 0 because normalized coordinates start at x!
+      // Wait: when does a normalized piece overlap a block and succeed with (+1, 0)?
+      // When its rotation at (0, 0) overlaps a locked block at `x` (or `x + 1`), AND `(-1, 0)` hits
+      // the left wall (or another locked block), while `(+1, 0)` is completely free!
+      // Let's trace that!
+      // Locked I is at col 0 (rows 16..19).
+      // Active piece T in rotation 3 (2x3: cells (1, 0), (0, 1), (1, 1), (1, 2)) is at x = 0, y =
+      // 15:
+      // At x = 0, y = 15, T rot 3 occupies:
+      //   (1, 15), (0, 16), (1, 16), (1, 17) -> Wait: (0, 16) is locked!
+      // What about T in rotation 3 at x = 0, y = 14?
+      //   Occupies: (1, 14), (0, 15), (1, 15), (1, 16) -> all 4 cells are FREE because locked I in
+      //   col 0 starts at row 16!
+      // Now tick T down 1 row? No, at y = 15, (0, 16) is blocked.
+      // What about J in rotation 3 (2x3: cells (1, 0), (1, 1), (0, 2), (1, 2))?
+      // Look at J in rotation 1 (2x3: cells (0, 0), (1, 0), (0, 1), (0, 2)) vs rotation 2 (3x2:
+      // cells (0, 0), (1, 0), (2, 0), (2, 1)) vs rotation 3 (cells (1, 0), (1, 1), (0, 2), (1,
+      // 2)):
+      // In rotation 2 at x = 0, y = 15:
+      //   J rot 2 occupies: (0, 15), (1, 15), (2, 15), (2, 16) -> ALL FREE (since col 0 row 15 is
+      //   above locked I at row 16..19)!
+      // Now rotate J clockwise from rotation 2 -> rotation 3 at x = 0, y = 15:
+      //   - Offset (0, 0) at (0, 15): J rot 3 needs (1, 15), (1, 16), (0, 17), (1, 17) -> collides
+      //     with locked I at (0, 17)!
+      //   - Offset (-1, 0) at (-1, 15): needs col -1 -> collides with left wall!
+      //   - Offset (+1, 0) at (1, 15): J rot 3 needs (2, 15), (2, 16), (1, 17), (2, 17) -> ALL
+      //     FREE!
+      // That's a 100% deterministic (+1, 0) kick!
+      TetrisBoard boardWithJ = new TetrisBoard(sequenceOf(Tetromino.I, Tetromino.J, Tetromino.O));
+      boardWithJ.rotateClockwise();
+      while (boardWithJ.moveLeft()) {
+        // move vertical I to col 0
+      }
+      boardWithJ.hardDrop(); // locks I at col 0, rows 16..19
+
+      // J spawns at (3, 0) in rotation 0. Rotate twice to rotation 2, move left to x = 0, tick 15
+      // times to y = 15
+      boardWithJ.rotateClockwise();
+      boardWithJ.rotateClockwise();
+      while (boardWithJ.moveLeft()) {
+        // move to x = 0
+      }
+      for (int i = 0; i < 15; i++) {
+        boardWithJ.tick();
+      }
+      assertThat(boardWithJ.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.J, 0, 15, 2));
+
+      // Rotate CW to rotation 3 -> (0,0) hits locked (0, 17), (-1,0) hits left wall, (+1,0) kicks
+      // to (1, 15)!
+      assertThat(boardWithJ.rotateClockwise()).isTrue();
+      assertThat(boardWithJ.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.J, 1, 15, 3));
+    }
+
+    @Test
+    @DisplayName(
+        "Floor kick (0, -1): rotating 3x2 T-piece at floor (y = 18) into 2x3 orientation should kick upward by 1 row to y = 17")
     void shouldKickUpBy1WhenRotatingAtFloor() {
-      // T spawns at (3, 0) in rotation 0 (occupies rows y+0 and y+1)
+      // T spawns at (3, 0) in rotation 0 (3x2: occupies rows y and y+1)
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.T));
 
       // Move down 18 times -> y = 18 (occupies rows 18 and 19, touching the floor)
@@ -290,38 +339,34 @@ class TetrisBoardTest {
       }
       assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 18, 0));
 
-      // Rotating CW to rotation 1 occupies rows y, y+1, y+2.
-      // At y = 18, y+2 = 20 (out of bounds below floor 19), and horizontal kicks (-1..+2, 0) also
-      // have y+2 = 20.
+      // Rotating CW (or CCW) to 2x3 orientation occupies rows y, y+1, y+2.
+      // At y = 18, y+2 = 20 (exceeds floor 19) for all horizontal offsets (0,0)..(+2,0).
       // Floor kick (0, -1) shifts y to 17 (rows 17, 18, 19 -> valid!)
-      assertThat(board.rotateClockwise()).isTrue();
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 17, 1));
+      assertThat(board.rotateAnticlockwise()).isTrue();
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.T, 3, 17, 3));
     }
 
     @Test
     @DisplayName(
-        "rotateClockwise() should return false and leave piece unchanged when all 6 kick offsets collide")
+        "rotateClockwise() and rotateAnticlockwise() should return false and leave piece unchanged when all 6 kick offsets collide")
     void shouldRejectRotationWhenAllKickOffsetsCollide() {
-      // On a 4-column board, horizontal I-piece is 4 cells wide (cols 0..3).
-      // If we lock blocks such that vertical I-piece (4 cells tall) cannot fit anywhere within
-      // offsets (0,0), (-1,0), (+1,0), (-2,0), (+2,0), (0,-1):
-      // Even simpler: at the floor (y = 18) of a 10-column board, horizontal I-piece in rotation 0
-      // has its bar at row 19 (y + 1).
-      // Rotating CW to rotation 1 puts its vertical bar at rows y, y+1, y+2, y+3.
-      // At y = 18:
-      // - Horizontal offsets (0,0), (-1,0), (+1,0), (-2,0), (+2,0) all have y+3 = 21 (exceeds
-      //   floor 19!)
-      // - Floor kick (0, -1) has y = 17, so y+3 = 20 (STILL exceeds floor 19!)
-      // Therefore, ALL 6 offsets collide with the floor!
+      // Horizontal I-piece (4x1) at the floor y = 19 occupies row 19.
+      // Rotating to vertical (1x4) occupies rows y, y+1, y+2, y+3:
+      // - At y = 19 (horizontal kicks), y+3 = 22 (exceeds floor 19).
+      // - At y = 18 (floor kick 0, -1), y+3 = 21 (still exceeds floor 19!).
+      // Therefore all 6 kick offsets collide with the floor.
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.I));
 
-      for (int i = 0; i < 18; i++) {
+      for (int i = 0; i < 19; i++) {
         board.tick();
       }
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 18, 0));
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 19, 0));
 
       assertThat(board.rotateClockwise()).isFalse();
-      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 18, 0));
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 19, 0));
+
+      assertThat(board.rotateAnticlockwise()).isFalse();
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.I, 3, 19, 0));
     }
   }
 
@@ -411,7 +456,7 @@ class TetrisBoardTest {
   }
 
   @Nested
-  @DisplayName("5. Line Clearing, Row Shifting & Dynamic Width-Aware Scoring")
+  @DisplayName("5. Line Clearing, Row Shifting & Fixed Scoring (100 / 300 / 500 / 800)")
   class LineClearingAndScoringTests {
 
     /**
@@ -449,11 +494,8 @@ class TetrisBoardTest {
 
     @Test
     @DisplayName(
-        "Clearing 1 line on width=4 board should award round((1000/4) * 1^1.5) = 250 points and shift upper blocks down")
-    void shouldClearSingleLineAwardWidthAdjustedPointsAndShiftRowsDown() {
-      // On a 4-column board, base constant is 1000.0 / 4 = 250.0.
-      // First drop an O-piece on the left (cols 0, 1 at rows 18, 19), then drop a horizontal
-      // I-piece on top (row 17, cols 0..3) to clear row 17.
+        "Clearing 1 line should award 100 points, increment linesCleared by 1, and shift upper blocks down")
+    void shouldClearSingleLineAward100PointsAndShiftRowsDown() {
       TetrisBoard board = new TetrisBoard(4, 20, sequenceOf(Tetromino.O, Tetromino.I, Tetromino.T));
 
       // Piece 1: O spawns at x = (4 - 2) / 2 = 1. Move left to x = 0 (cols 0, 1; rows 18, 19)
@@ -468,50 +510,10 @@ class TetrisBoardTest {
 
       // Row 17 was completely filled by I and cleared; rows 18 and 19 still have O at cols 0, 1
       assertThat(board.getLinesCleared()).isEqualTo(1);
-      assertThat(board.getScore()).isEqualTo(250);
+      assertThat(board.getScore()).isEqualTo(100);
       assertThat(board.getLockedBlockAt(0, 17)).isNull();
       assertThat(board.getLockedBlockAt(0, 18)).isEqualTo(Tetromino.O);
       assertThat(board.getLockedBlockAt(0, 19)).isEqualTo(Tetromino.O);
-    }
-
-    @Test
-    @DisplayName(
-        "Wider boards should have a lower base constant: clearing 1 line on width=20 awards round((1000/20) * 1^1.5) = 50 points")
-    void widerBoardsShouldAwardLowerConstantPerLineClear() {
-      // On a 20-column board, 5 horizontal I-pieces (each 4 wide) across the bottom clear 1 line.
-      // Base constant = 1000.0 / 20 = 50 points.
-      TetrisBoard board = new TetrisBoard(20, 20, sequenceOf(Tetromino.I));
-
-      // I spawns at x = (20 - 4) / 2 = 8 on a 20-wide board:
-      // 1) cols 0..3 (move left 8 times from x = 8)
-      for (int i = 0; i < 8; i++) {
-        board.moveLeft();
-      }
-      board.hardDrop();
-
-      // 2) cols 4..7 (move left 4 times from x = 8)
-      for (int i = 0; i < 4; i++) {
-        board.moveLeft();
-      }
-      board.hardDrop();
-
-      // 3) cols 8..11 (center x = 8)
-      board.hardDrop();
-
-      // 4) cols 12..15 (move right 4 times from x = 8)
-      for (int i = 0; i < 4; i++) {
-        board.moveRight();
-      }
-      board.hardDrop();
-
-      // 5) cols 16..19 (move right 8 times from x = 8)
-      for (int i = 0; i < 8; i++) {
-        board.moveRight();
-      }
-      board.hardDrop();
-
-      assertThat(board.getLinesCleared()).isEqualTo(1);
-      assertThat(board.getScore()).isEqualTo(50);
     }
 
     @Test
@@ -524,15 +526,17 @@ class TetrisBoardTest {
       assertThat(board.getLockedBlockAt(2, 18)).isEqualTo(Tetromino.L);
       assertThat(board.getLockedBlockAt(0, 19)).isEqualTo(Tetromino.L);
 
-      // Piece 2: I spawns at x = 0. Rotate CW once (solid at col x + 2 = 2), move right once (x =
-      // 1 -> solid at col 3)
+      // Piece 2: I spawns at x = 0. Rotate CW once (vertical 1x4 at col x = 0), move right 3 times
+      // to col 3
       board.rotateClockwise();
+      board.moveRight();
+      board.moveRight();
       board.moveRight();
       board.hardDrop();
 
-      // Row 19 cleared on width=4 -> 1 line, round((1000.0 / 4) * 1^1.5) = 250 points
+      // Row 19 cleared -> 1 line, 100 points
       assertThat(board.getLinesCleared()).isEqualTo(1);
-      assertThat(board.getScore()).isEqualTo(250);
+      assertThat(board.getScore()).isEqualTo(100);
 
       // (2, 18) from L shifted down to (2, 19); (3, 16..18) from I shifted down to (3, 17..19)
       assertThat(board.getLockedBlockAt(2, 19)).isEqualTo(Tetromino.L);
@@ -545,15 +549,14 @@ class TetrisBoardTest {
     }
 
     @Test
-    @DisplayName(
-        "Clearing 2 lines on standard width=10 board should award round((1000/10) * 2^1.5) = 283 points")
-    void shouldClearDoubleLinesAndAwardFormulaPoints() {
+    @DisplayName("Clearing 2 lines simultaneously should award 300 points and increment lines by 2")
+    void shouldClearDoubleLinesAndAward300Points() {
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O));
 
       dropFiveOPiecesAcrossRow(board);
 
       assertThat(board.getLinesCleared()).isEqualTo(2);
-      assertThat(board.getScore()).isEqualTo(283);
+      assertThat(board.getScore()).isEqualTo(300);
       for (int x = 0; x < 10; x++) {
         assertThat(board.getLockedBlockAt(x, 19)).isNull();
         assertThat(board.getLockedBlockAt(x, 18)).isNull();
@@ -561,9 +564,8 @@ class TetrisBoardTest {
     }
 
     @Test
-    @DisplayName(
-        "Clearing 3 lines on width=4 board should award round((1000/4) * 3^1.5) = 1299 points")
-    void shouldClearTripleLinesAndAwardFormulaPoints() {
+    @DisplayName("Clearing 3 lines simultaneously should award 500 points and increment lines by 3")
+    void shouldClearTripleLinesAndAward500Points() {
       TetrisBoard board =
           new TetrisBoard(
               4, 20, sequenceOf(Tetromino.O, Tetromino.L, Tetromino.I, Tetromino.I, Tetromino.O));
@@ -572,72 +574,68 @@ class TetrisBoardTest {
       board.moveLeft();
       board.hardDrop();
 
-      // 2. L spawns at x = 0 -> rotate 3 times (rot 3), move right to x = 1, hardDrop
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.rotateClockwise();
+      // 2. L spawns at x = 0 -> rotate anticlockwise once (rot 3: (0,0), (1,0), (1,1), (1,2)),
+      // move right to x = 1, hardDrop -> locks at (1, 17), (2, 17), (2, 18), (2, 19)
+      board.rotateAnticlockwise();
       board.moveRight();
       board.hardDrop();
 
-      // 3. I spawns at x = 0 -> rotate 3 times (rot 3: solid col at x + 1), move left to x = -1
-      // (solid col 0), hardDrop
+      // 3. I spawns at x = 0 -> rotate CW once (vertical 1x4 at col x = 0), hardDrop -> locks at
+      // col 0, rows 14..17
       board.rotateClockwise();
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.moveLeft();
       board.hardDrop();
 
       assertThat(board.getLinesCleared()).isZero();
       assertThat(board.getScore()).isZero();
 
-      // 4. I spawns at x = 0 -> rotate once (rot 1: solid col at x + 2), move right to x = 1
-      // (solid col 3), hardDrop
+      // 4. I spawns at x = 0 -> rotate CW once (vertical 1x4 at col 0), move right 3 times to col
+      // 3, hardDrop -> fills (3, 16..19), completing rows 17, 18, 19!
       board.rotateClockwise();
+      board.moveRight();
+      board.moveRight();
       board.moveRight();
       board.hardDrop();
 
       assertThat(board.getLinesCleared()).isEqualTo(3);
-      // (int) Math.round((1000.0 / 4) * Math.pow(3, 1.5)) == 1299
-      assertThat(board.getScore()).isEqualTo(1299);
+      assertThat(board.getScore()).isEqualTo(500);
     }
 
     @Test
     @DisplayName(
-        "Clearing 4 lines (Tetris) on width=4 board should award round((1000/4) * 4^1.5) = 2000 points")
-    void shouldClearFourLinesTetrisAndAwardFormulaPoints() {
+        "Clearing 4 lines (Tetris) simultaneously should award 800 points and increment lines by 4")
+    void shouldClearFourLinesTetrisAndAward800Points() {
       // On a 4-column board, drop 4 vertical I-pieces into columns 0, 1, 2, and 3!
       TetrisBoard board =
           new TetrisBoard(
               4, 20, sequenceOf(Tetromino.I, Tetromino.I, Tetromino.I, Tetromino.I, Tetromino.O));
 
-      // Piece 1: col 0 (rot 3 -> solid at x + 1, move left to x = -1 -> col 0)
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.rotateClockwise();
-      board.moveLeft();
-      board.hardDrop();
-
-      // Piece 2: col 1 (rot 3 -> solid at x + 1, at x = 0 -> col 1)
-      board.rotateClockwise();
-      board.rotateClockwise();
+      // Piece 1: col 0 (rot 1 at x = 0)
       board.rotateClockwise();
       board.hardDrop();
 
-      // Piece 3: col 2 (rot 1 -> solid at x + 2, at x = 0 -> col 2)
+      // Piece 2: col 1 (rot 1, move right once to x = 1)
       board.rotateClockwise();
+      board.moveRight();
+      board.hardDrop();
+
+      // Piece 3: col 2 (rot 1, move right twice to x = 2)
+      board.rotateClockwise();
+      board.moveRight();
+      board.moveRight();
       board.hardDrop();
 
       assertThat(board.getLinesCleared()).isZero();
       assertThat(board.getScore()).isZero();
 
-      // Piece 4: col 3 (rot 1 -> solid at x + 2, move right to x = 1 -> col 3)
+      // Piece 4: col 3 (rot 1, move right 3 times to x = 3)
       board.rotateClockwise();
+      board.moveRight();
+      board.moveRight();
       board.moveRight();
       board.hardDrop();
 
       assertThat(board.getLinesCleared()).isEqualTo(4);
-      // (int) Math.round((1000.0 / 4) * Math.pow(4, 1.5)) == 2000
-      assertThat(board.getScore()).isEqualTo(2000);
+      assertThat(board.getScore()).isEqualTo(800);
 
       for (int y = 16; y <= 19; y++) {
         for (int x = 0; x < 4; x++) {
@@ -687,6 +685,7 @@ class TetrisBoardTest {
       assertThat(board.moveLeft()).isFalse();
       assertThat(board.moveRight()).isFalse();
       assertThat(board.rotateClockwise()).isFalse();
+      assertThat(board.rotateAnticlockwise()).isFalse();
       board.tick();
       board.softDrop();
       board.hardDrop();
@@ -705,7 +704,7 @@ class TetrisBoardTest {
       // Drop O-piece to leave locked blocks on the board
       board.hardDrop();
 
-      assertThat(board.getScore()).isEqualTo(250);
+      assertThat(board.getScore()).isEqualTo(100);
       assertThat(board.getLinesCleared()).isEqualTo(1);
       assertThat(board.getLockedBlockAt(1, 19)).isEqualTo(Tetromino.O);
 

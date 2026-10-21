@@ -11,7 +11,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
-@DisplayName("ActivePiece Model Tests")
+@DisplayName("ActivePiece Model Tests (Normalized Top-Left Coordinates)")
 class ActivePieceTest {
 
   @Nested
@@ -44,13 +44,13 @@ class ActivePieceTest {
   }
 
   @Nested
-  @DisplayName("rotateClockwise() Rotation Index Cycle Tests")
+  @DisplayName("rotateClockwise() & rotateAnticlockwise() Rotation Index Cycle Tests")
   class RotationCycleTests {
 
     @Test
     @DisplayName(
         "rotateClockwise() should cycle rotationIndex 0 -> 1 -> 2 -> 3 -> 0 preserving position")
-    void shouldCycleRotationIndexMod4() {
+    void shouldCycleRotationIndexClockwiseMod4() {
       ActivePiece r0 = new ActivePiece(Tetromino.I, 3, 0, 0);
 
       ActivePiece r1 = r0.rotateClockwise();
@@ -58,114 +58,102 @@ class ActivePieceTest {
       ActivePiece r3 = r2.rotateClockwise();
       ActivePiece r4 = r3.rotateClockwise();
 
-      // Original remains unchanged
-      assertThat(r0.rotationIndex()).isEqualTo(0);
+      assertThat(r0.rotationIndex()).isZero();
+      assertThat(r1).isEqualTo(new ActivePiece(Tetromino.I, 3, 0, 1));
+      assertThat(r2).isEqualTo(new ActivePiece(Tetromino.I, 3, 0, 2));
+      assertThat(r3).isEqualTo(new ActivePiece(Tetromino.I, 3, 0, 3));
+      assertThat(r4).isEqualTo(new ActivePiece(Tetromino.I, 3, 0, 0));
+    }
 
-      // Cycle verification
-      assertThat(r1.rotationIndex()).isEqualTo(1);
-      assertThat(r1.x()).isEqualTo(3);
-      assertThat(r1.y()).isEqualTo(0);
-      assertThat(r1.type()).isEqualTo(Tetromino.I);
+    @Test
+    @DisplayName(
+        "rotateAnticlockwise() should cycle rotationIndex 0 -> 3 -> 2 -> 1 -> 0 preserving position")
+    void shouldCycleRotationIndexAnticlockwiseMod4() {
+      ActivePiece r0 = new ActivePiece(Tetromino.T, 4, 2, 0);
 
-      assertThat(r2.rotationIndex()).isEqualTo(2);
-      assertThat(r3.rotationIndex()).isEqualTo(3);
-      assertThat(r4.rotationIndex()).isEqualTo(0);
+      ActivePiece r3 = r0.rotateAnticlockwise();
+      ActivePiece r2 = r3.rotateAnticlockwise();
+      ActivePiece r1 = r2.rotateAnticlockwise();
+      ActivePiece backTo0 = r1.rotateAnticlockwise();
+
+      assertThat(r0.rotationIndex()).isZero();
+      assertThat(r3).isEqualTo(new ActivePiece(Tetromino.T, 4, 2, 3));
+      assertThat(r2).isEqualTo(new ActivePiece(Tetromino.T, 4, 2, 2));
+      assertThat(r1).isEqualTo(new ActivePiece(Tetromino.T, 4, 2, 1));
+      assertThat(backTo0).isEqualTo(new ActivePiece(Tetromino.T, 4, 2, 0));
+    }
+
+    @Test
+    @DisplayName("rotateClockwise() followed by rotateAnticlockwise() should be an identity")
+    void clockwiseAndAnticlockwiseShouldBeInverses() {
+      ActivePiece piece = new ActivePiece(Tetromino.L, 2, 7, 2);
+
+      assertThat(piece.rotateClockwise().rotateAnticlockwise()).isEqualTo(piece);
+      assertThat(piece.rotateAnticlockwise().rotateClockwise()).isEqualTo(piece);
     }
   }
 
   @Nested
-  @DisplayName("Tetromino.I Occupied Cells Across All 4 Orientations (4x4 Bounding Box)")
+  @DisplayName("Tetromino.I Normalized Occupied Cells Across All 4 Orientations")
   class TetrominoIOrientationTests {
 
     /*
-     * Tetromino.I 4x4 matrix representation:
+     * NOTE: With Normalized Top-Left Coordinates, Tetromino.I has NO blank leading rows or columns:
      *
-     * Rotation 0 (Horizontal, row 1):
-     * [ . . . . ]
-     * [ # # # # ] -> row 1, cols 0, 1, 2, 3
-     * [ . . . . ]
-     * [ . . . . ]
+     * Rotation 0 & 2 (Horizontal 4x1 bar flushed to row 0):
+     * [ # # # # ] -> (x+0, y+0), (x+1, y+0), (x+2, y+0), (x+3, y+0)
      *
-     * Rotation 1 (90° CW, col 2):
-     * [ . . # . ] -> row 0, col 2
-     * [ . . # . ] -> row 1, col 2
-     * [ . . # . ] -> row 2, col 2
-     * [ . . # . ] -> row 3, col 2
-     *
-     * Rotation 2 (180° CW, row 2):
-     * [ . . . . ]
-     * [ . . . . ]
-     * [ # # # # ] -> row 2, cols 0, 1, 2, 3
-     * [ . . . . ]
-     *
-     * Rotation 3 (270° CW, col 1):
-     * [ . # . . ] -> row 0, col 1
-     * [ . # . . ] -> row 1, col 1
-     * [ . # . . ] -> row 2, col 1
-     * [ . # . . ] -> row 3, col 1
+     * Rotation 1 & 3 (Vertical 1x4 bar flushed to col 0):
+     * [ # ] -> (x+0, y+0)
+     * [ # ] -> (x+0, y+1)
+     * [ # ] -> (x+0, y+2)
+     * [ # ] -> (x+0, y+3)
      */
 
     @Test
-    @DisplayName("Rotation 0: Tetromino.I horizontal bar at row y+1")
+    @DisplayName("Rotation 0: Tetromino.I horizontal bar flushed to top row y")
     void shouldReturnOccupiedCellsForRotation0() {
       ActivePiece piece = new ActivePiece(Tetromino.I, 3, 0, 0);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(3, 1), new Point(4, 1), new Point(5, 1), new Point(6, 1));
+              new Point(3, 0), new Point(4, 0), new Point(5, 0), new Point(6, 0));
     }
 
     @Test
-    @DisplayName("Rotation 1 (90° CW): Tetromino.I vertical bar at col x+2")
+    @DisplayName("Rotation 1 (90° CW): Tetromino.I vertical bar flushed to left col x")
     void shouldReturnOccupiedCellsForRotation1() {
       ActivePiece piece = new ActivePiece(Tetromino.I, 3, 0, 1);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(5, 0), new Point(5, 1), new Point(5, 2), new Point(5, 3));
+              new Point(3, 0), new Point(3, 1), new Point(3, 2), new Point(3, 3));
     }
 
     @Test
-    @DisplayName("Rotation 2 (180° CW): Tetromino.I horizontal bar at row y+2")
+    @DisplayName("Rotation 2 (180° CW): Tetromino.I horizontal bar flushed to top row y")
     void shouldReturnOccupiedCellsForRotation2() {
       ActivePiece piece = new ActivePiece(Tetromino.I, 3, 0, 2);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(3, 2), new Point(4, 2), new Point(5, 2), new Point(6, 2));
+              new Point(3, 0), new Point(4, 0), new Point(5, 0), new Point(6, 0));
     }
 
     @Test
-    @DisplayName("Rotation 3 (270° CW): Tetromino.I vertical bar at col x+1")
+    @DisplayName("Rotation 3 (270° CW): Tetromino.I vertical bar flushed to left col x")
     void shouldReturnOccupiedCellsForRotation3() {
       ActivePiece piece = new ActivePiece(Tetromino.I, 3, 0, 3);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(4, 0), new Point(4, 1), new Point(4, 2), new Point(4, 3));
+              new Point(3, 0), new Point(3, 1), new Point(3, 2), new Point(3, 3));
     }
   }
 
   @Nested
-  @DisplayName("Tetromino.O Occupied Cells Across All 4 Orientations (2x2 Bounding Box)")
+  @DisplayName("Tetromino.O Normalized Occupied Cells Across All 4 Orientations")
   class TetrominoOOrientationTests {
-
-    /*
-     * Tetromino.O 2x2 matrix representation:
-     * All 4 blocks solid across all rotations:
-     * [ # # ]
-     * [ # # ]
-     *
-     * Occupies (col 0, row 0), (col 1, row 0), (col 0, row 1), (col 1, row 1) invariant under rotation.
-     */
 
     @Test
     @DisplayName(
@@ -191,95 +179,69 @@ class ActivePieceTest {
   }
 
   @Nested
-  @DisplayName("Tetromino.T Occupied Cells Across All 4 Orientations (3x3 Bounding Box)")
+  @DisplayName("Tetromino.T Normalized Occupied Cells Across All 4 Orientations")
   class TetrominoTOrientationTests {
 
     /*
-     * Tetromino.T 3x3 matrix representation:
+     * Normalized Top-Left representations for Tetromino.T:
      *
-     * Rotation 0 (Pointing Up):
-     * [ . # . ] -> (col 1, row 0)
-     * [ # # # ] -> (col 0, row 1), (col 1, row 1), (col 2, row 1)
-     * [ . . . ]
+     * Rotation 0 (Pointing Up, 3x2):
+     * [ . # . ] -> (1, 0)
+     * [ # # # ] -> (0, 1), (1, 1), (2, 1)
      *
-     * Rotation 1 (90° CW - Pointing Right):
-     * [ . # . ] -> (col 1, row 0)
-     * [ . # # ] -> (col 1, row 1), (col 2, row 1)
-     * [ . # . ] -> (col 1, row 2)
+     * Rotation 1 (90° CW - Pointing Right, 2x3, flushed to col 0):
+     * [ # . ] -> (0, 0)
+     * [ # # ] -> (0, 1), (1, 1)
+     * [ # . ] -> (0, 2)
      *
-     * Rotation 2 (180° CW - Pointing Down):
-     * [ . . . ]
-     * [ # # # ] -> (col 0, row 1), (col 1, row 1), (col 2, row 1)
-     * [ . # . ] -> (col 1, row 2)
+     * Rotation 2 (180° CW - Pointing Down, 3x2, flushed to row 0):
+     * [ # # # ] -> (0, 0), (1, 0), (2, 0)
+     * [ . # . ] -> (1, 1)
      *
-     * Rotation 3 (270° CW - Pointing Left):
-     * [ . # . ] -> (col 1, row 0)
-     * [ # # . ] -> (col 0, row 1), (col 1, row 1)
-     * [ . # . ] -> (col 1, row 2)
+     * Rotation 3 (270° CW - Pointing Left, 2x3, flushed to col 0):
+     * [ . # ] -> (1, 0)
+     * [ # # ] -> (0, 1), (1, 1)
+     * [ . # ] -> (1, 2)
      */
 
     @Test
-    @DisplayName("Rotation 0 (Pointing Up): top center block and horizontal bottom row")
+    @DisplayName("Rotation 0 (Pointing Up, 3x2): top center block and horizontal bottom row")
     void shouldReturnOccupiedCellsForRotation0() {
       ActivePiece piece = new ActivePiece(Tetromino.T, 2, 4, 0);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(3, 4), // (col 1, row 0) -> x=3, y=4
-              new Point(2, 5), // (col 0, row 1) -> x=2, y=5
-              new Point(3, 5), // (col 1, row 1) -> x=3, y=5
-              new Point(4, 5) // (col 2, row 1) -> x=4, y=5
-              );
+              new Point(3, 4), new Point(2, 5), new Point(3, 5), new Point(4, 5));
     }
 
     @Test
-    @DisplayName("Rotation 1 (90° CW - Pointing Right): vertical stem and right-pointing block")
+    @DisplayName("Rotation 1 (90° CW - Pointing Right, 2x3): vertical stem flushed to col x")
     void shouldReturnOccupiedCellsForRotation1() {
       ActivePiece piece = new ActivePiece(Tetromino.T, 2, 4, 1);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(3, 4), // (col 1, row 0) -> x=3, y=4
-              new Point(3, 5), // (col 1, row 1) -> x=3, y=5
-              new Point(4, 5), // (col 2, row 1) -> x=4, y=5
-              new Point(3, 6) // (col 1, row 2) -> x=3, y=6
-              );
+              new Point(2, 4), new Point(2, 5), new Point(3, 5), new Point(2, 6));
     }
 
     @Test
-    @DisplayName("Rotation 2 (180° CW - Pointing Down): horizontal row and bottom center block")
+    @DisplayName("Rotation 2 (180° CW - Pointing Down, 3x2): horizontal bar flushed to row y")
     void shouldReturnOccupiedCellsForRotation2() {
       ActivePiece piece = new ActivePiece(Tetromino.T, 2, 4, 2);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(2, 5), // (col 0, row 1) -> x=2, y=5
-              new Point(3, 5), // (col 1, row 1) -> x=3, y=5
-              new Point(4, 5), // (col 2, row 1) -> x=4, y=5
-              new Point(3, 6) // (col 1, row 2) -> x=3, y=6
-              );
+              new Point(2, 4), new Point(3, 4), new Point(4, 4), new Point(3, 5));
     }
 
     @Test
-    @DisplayName("Rotation 3 (270° CW - Pointing Left): vertical stem and left-pointing block")
+    @DisplayName("Rotation 3 (270° CW - Pointing Left, 2x3): left-pointing tip at col x")
     void shouldReturnOccupiedCellsForRotation3() {
       ActivePiece piece = new ActivePiece(Tetromino.T, 2, 4, 3);
 
-      List<Point> cells = piece.getOccupiedCells();
-
-      assertThat(cells)
+      assertThat(piece.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(3, 4), // (col 1, row 0) -> x=3, y=4
-              new Point(2, 5), // (col 0, row 1) -> x=2, y=5
-              new Point(3, 5), // (col 1, row 1) -> x=3, y=5
-              new Point(3, 6) // (col 1, row 2) -> x=3, y=6
-              );
+              new Point(3, 4), new Point(2, 5), new Point(3, 5), new Point(3, 6));
     }
   }
 
@@ -290,24 +252,15 @@ class ActivePieceTest {
     @Test
     @DisplayName("Occupied cells should correctly reflect both movement offset and rotation")
     void shouldUpdateOccupiedCellsAfterMoveAndRotate() {
-      // Start at spawn position (3, 0)
       ActivePiece piece = new ActivePiece(Tetromino.T, 3, 0, 0);
 
       // Move right 1 and down 2 -> (4, 2), rotate clockwise once -> rotationIndex = 1
       ActivePiece shiftedAndRotated = piece.moveBy(1, 2).rotateClockwise();
 
-      assertThat(shiftedAndRotated.x()).isEqualTo(4);
-      assertThat(shiftedAndRotated.y()).isEqualTo(2);
-      assertThat(shiftedAndRotated.rotationIndex()).isEqualTo(1);
-
-      // Rotation 1 of T at (4, 2):
-      // (col 1, row 0) -> (5, 2)
-      // (col 1, row 1) -> (5, 3)
-      // (col 2, row 1) -> (6, 3)
-      // (col 1, row 2) -> (5, 4)
+      assertThat(shiftedAndRotated).isEqualTo(new ActivePiece(Tetromino.T, 4, 2, 1));
       assertThat(shiftedAndRotated.getOccupiedCells())
           .containsExactlyInAnyOrder(
-              new Point(5, 2), new Point(5, 3), new Point(6, 3), new Point(5, 4));
+              new Point(4, 2), new Point(4, 3), new Point(5, 3), new Point(4, 4));
     }
   }
 
@@ -353,11 +306,10 @@ class ActivePieceTest {
     @ParameterizedTest
     @EnumSource(Tetromino.class)
     @DisplayName(
-        "Invariant: every Tetromino in every rotation [0..3] occupies exactly 4 distinct cells inside its N x N bounding box")
-    void everyTetrominoInAllRotationsShouldHaveFourDistinctCellsInBoundingBox(Tetromino type) {
-      int originX = -3;
-      int originY = -2;
-      int matrixSize = type.getBaseShape().length;
+        "Invariant: every Tetromino in every rotation [0..3] has 4 distinct cells flushed to (originX, originY) with span <= 4")
+    void everyTetrominoInAllRotationsShouldBeNormalizedToTopLeftAndHaveSpanAtMost4(Tetromino type) {
+      int originX = 5;
+      int originY = 7;
 
       for (int rot = 0; rot < 4; rot++) {
         ActivePiece piece = new ActivePiece(type, originX, originY, rot);
@@ -368,26 +320,23 @@ class ActivePieceTest {
             .hasSize(4)
             .doesNotHaveDuplicates();
 
-        for (Point cell : cells) {
-          assertThat(cell.x())
-              .as("%s rot %d cell x within bounding box", type, rot)
-              .isBetween(originX, originX + matrixSize - 1);
-          assertThat(cell.y())
-              .as("%s rot %d cell y within bounding box", type, rot)
-              .isBetween(originY, originY + matrixSize - 1);
-        }
+        int minX = cells.stream().mapToInt(Point::x).min().orElseThrow();
+        int maxX = cells.stream().mapToInt(Point::x).max().orElseThrow();
+        int minY = cells.stream().mapToInt(Point::y).min().orElseThrow();
+        int maxY = cells.stream().mapToInt(Point::y).max().orElseThrow();
+
+        // Top-left normalization invariant: no blank leading rows or columns!
+        assertThat(minX)
+            .as("%s rot %d must be flushed to originX (no blank left column)", type, rot)
+            .isEqualTo(originX);
+        assertThat(minY)
+            .as("%s rot %d must be flushed to originY (no blank top row)", type, rot)
+            .isEqualTo(originY);
+
+        // 4-block maximum span invariant (guarantees a single piece lock can never clear > 4 lines)
+        assertThat(maxX - minX + 1).as("%s rot %d width <= 4", type, rot).isBetween(1, 4);
+        assertThat(maxY - minY + 1).as("%s rot %d height <= 4", type, rot).isBetween(1, 4);
       }
-    }
-
-    @Test
-    @DisplayName(
-        "Edge case: negative piece origin (e.g., Tetromino.I at x = -1 in rotation 3) places cells at left wall x = 0")
-    void shouldAllowNegativeOriginCoordinatesForWallAlignment() {
-      ActivePiece leftWallIPiece = new ActivePiece(Tetromino.I, -1, -1, 3);
-
-      assertThat(leftWallIPiece.getOccupiedCells())
-          .containsExactlyInAnyOrder(
-              new Point(0, -1), new Point(0, 0), new Point(0, 1), new Point(0, 2));
     }
 
     @Test
