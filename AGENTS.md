@@ -29,6 +29,9 @@
 - **Spawning & Game Over:**
   - New pieces spawn at top-center: `x = (width - matrixSize) / 2`, `y = 0`, `rotationIndex = 0`.
   - If a newly spawned piece immediately overlaps an existing locked block on the board, `isGameOver()` becomes `true` and further movement/ticks are ignored until `reset()` is called.
+- **Line Clearing & Scoring:**
+  - When a piece locks, any completely filled horizontal rows are cleared and all rows above them shift down (`+1` in `y`).
+  - Standard scoring per clear event: `1 line = 100`, `2 lines = 300`, `3 lines = 500`, `4 lines (Tetris) = 800`.
 
 ## 4. TDD Workflow & Role Division
 
@@ -44,8 +47,9 @@ We follow a strict **Red -> Green -> Refactor** TDD workflow:
    - Continuously evaluate code quality for readability, maintainability, and clean architecture/good practices.
 2. **Green (Developer):**
    - The human developer evaluates the generated tests and writes the production implementation necessary to satisfy them and make the test suite green.
-3. **Verify & Audit (AI Agent):**
+3. **Verify, Whitebox Testing & Audit (AI Agent):**
    - Run `./gradlew core:test` and `./gradlew check` to verify implementations and review for edge cases.
+   - Once the first iteration of an implementation is complete, the AI Agent MUST add **whitebox tests** covering invariants, edge cases, and invalid states (e.g., compact constructor validations, boundary normalization, internal invariants). These whitebox tests are living tests and may be modified and iterated upon as the implementation evolves.
 
 ## 5. Build, Test, Lint, and Format Commands
 
