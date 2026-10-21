@@ -10,6 +10,26 @@ This project was generated with a template including simple application launcher
 - `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
 - `teavm`: Web backend that supports most JVM languages.
 
+## Java setup
+
+Have a JDK available through `JAVA_HOME` or `java` on your `PATH`; the existing
+Java 21 installation is suitable for running Gradle. The project uses
+Java 17 for compilation and tests. Gradle automatically finds
+an installed JDK 17 or downloads one into `GRADLE_USER_HOME/jdks` (by default,
+`~/.gradle/jdks`). No sudo or manual Java 17 installation is required. The first
+build needs internet access to download Gradle, the JDK, and dependencies.
+
+Do not commit a machine-specific `org.gradle.java.home` path. Gradle runs on your selected
+JDK, and the portable Java 17 build toolchain is configured in `build.gradle`.
+
+From the repository root, verify setup with:
+
+```sh
+./gradlew --version
+./gradlew core:test
+./gradlew check
+```
+
 ## Gradle
 
 This project uses [Gradle](https://gradle.org/) to manage dependencies.
