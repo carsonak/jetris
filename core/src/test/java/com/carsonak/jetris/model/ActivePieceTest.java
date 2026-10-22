@@ -14,6 +14,30 @@ import org.junit.jupiter.params.provider.EnumSource;
 @DisplayName("ActivePiece Model Tests (Normalized Top-Left Coordinates)")
 class ActivePieceTest {
 
+  @ParameterizedTest
+  @EnumSource(Tetromino.class)
+  void translatesEveryCachedOrientationWithoutMutatingIt(Tetromino type) {
+    for (int rotation = 0; rotation < 4; rotation++) {
+      List<Point> local = List.copyOf(type.getCells(rotation));
+      ActivePiece piece = new ActivePiece(type, -3, -5, rotation);
+      assertThat(piece.getOccupiedCells())
+          .containsExactlyInAnyOrderElementsOf(
+              local.stream().map(cell -> new Point(cell.x() - 3, cell.y() - 5)).toList());
+      assertThatThrownBy(() -> piece.getOccupiedCells().clear())
+          .isInstanceOf(UnsupportedOperationException.class);
+      assertThat(type.getCells(rotation)).containsExactlyElementsOf(local);
+      assertThat(piece.rotateClockwise().rotateClockwise().rotateClockwise().rotateClockwise())
+          .isEqualTo(piece);
+      assertThat(
+              piece
+                  .rotateAnticlockwise()
+                  .rotateAnticlockwise()
+                  .rotateAnticlockwise()
+                  .rotateAnticlockwise())
+          .isEqualTo(piece);
+    }
+  }
+
   @Nested
   @DisplayName("moveBy() Movement Tests")
   class MovementTests {
@@ -67,7 +91,8 @@ class ActivePieceTest {
 
     @Test
     @DisplayName(
-        "rotateAnticlockwise() should cycle rotationIndex 0 -> 3 -> 2 -> 1 -> 0 preserving position")
+        "rotateAnticlockwise() should cycle rotationIndex 0 -> 3 -> 2 -> 1 -> 0 preserving"
+            + " position")
     void shouldCycleRotationIndexAnticlockwiseMod4() {
       ActivePiece r0 = new ActivePiece(Tetromino.T, 4, 2, 0);
 
@@ -278,11 +303,26 @@ class ActivePieceTest {
 
     @ParameterizedTest(name = "raw rotationIndex {0} should normalize to {1}")
     @CsvSource({
-      "0, 0", "1, 1", "2, 2", "3, 3", "4, 0", "5, 1", "6, 2", "7, 3", "100, 0", "-1, 3", "-2, 2",
-      "-3, 1", "-4, 0", "-5, 3"
+      "0, 0",
+      "1, 1",
+      "2, 2",
+      "3, 3",
+      "4, 0",
+      "5, 1",
+      "6, 2",
+      "7, 3",
+      "100, 0",
+      "-1, 3",
+      "-2, 2",
+      "-3, 1",
+      "-4, 0",
+      "-5, 3",
+      "2147483647, 3",
+      "-2147483648, 0"
     })
     @DisplayName(
-        "Compact constructor should normalize positive and negative rotationIndex values into [0, 3]")
+        "Compact constructor should normalize positive and negative rotationIndex values into [0,"
+            + " 3]")
     void shouldNormalizeRotationIndexIntoValidRange(int rawRotation, int expectedNormalized) {
       ActivePiece piece = new ActivePiece(Tetromino.T, 3, 0, rawRotation);
 
@@ -306,7 +346,8 @@ class ActivePieceTest {
     @ParameterizedTest
     @EnumSource(Tetromino.class)
     @DisplayName(
-        "Invariant: every Tetromino in every rotation [0..3] has 4 distinct cells flushed to (originX, originY) with span <= 4")
+        "Invariant: every Tetromino in every rotation [0..3] has 4 distinct cells flushed to"
+            + " (originX, originY) with span <= 4")
     void everyTetrominoInAllRotationsShouldBeNormalizedToTopLeftAndHaveSpanAtMost4(Tetromino type) {
       int originX = 5;
       int originY = 7;
