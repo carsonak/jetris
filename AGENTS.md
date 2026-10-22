@@ -23,11 +23,11 @@
   - Moving **Down** (gravity/drop) increases `y` (`+1`).
   - Floor boundary is `y == height - 1` (`19`).
 - **Piece Representation, Rotation & Wall Kicks:**
-  - **`Tetromino` Encapsulation:** `Tetromino` does NOT expose an `int[][]` matrix. Instead, it exposes `List<Point> getBaseCells()` (the 4 local block coordinates at `rotationIndex = 0`, flushed to the top-left origin so `minX == 0` and `minY == 0`), along with `getWidth()` and `getHeight()`.
+  - **`Tetromino` Encapsulation:** `Tetromino` does NOT expose an `int[][]` matrix. Instead, it exposes `List<Point> getCells(int rotationIndex)` (4 unmodifiable local block coordinates from one of four cached orientations; indices are reduced modulo 4, and every orientation has `minX == 0` and `minY == 0`), along with `getWidth()` and `getHeight()`.
   - **`ActivePiece` Rotation & Top-Left Normalization:**
     - `rotationIndex` is normalized into `[0, 3]` via `Math.floorMod(rotationIndex, 4)`.
     - `rotateClockwise()` increments `rotationIndex` (`0 -> 1 -> 2 -> 3 -> 0`); `rotateAnticlockwise()` decrements `rotationIndex` (`0 -> 3 -> 2 -> 1 -> 0`).
-    - To compute `getOccupiedCells()`, each base point `(x, y)` from `type.getBaseCells()` is rotated 90° clockwise `rotationIndex` times via `(rotX, rotY) -> (-rotY, rotX)`, normalized by subtracting `(minX, minY)` across the 4 rotated points so `minX == 0` and `minY == 0` in every orientation (preventing blank leading rows/columns and "invisible wall/floor" effects), and finally translated by adding `(this.x, this.y)`.
+    - `Tetromino` precomputes its four orientations once during enum initialization. Each base point `(x, y)` is rotated 90° clockwise `rotationIndex` times via `(rotX, rotY) -> (-rotY, rotX)`, normalized by subtracting `(minX, minY)` across the 4 rotated points so `minX == 0` and `minY == 0` in every orientation (preventing blank leading rows/columns and "invisible wall/floor" effects). `ActivePiece.getOccupiedCells()` then translates the cached local cells by adding `(this.x, this.y)`.
   - **Simple Wall/Floor Kick Offset Table:** When `rotateClockwise()` or `rotateAnticlockwise()` is called on `TetrisBoard`, test the rotated piece at candidate `(dx, dy)` offsets in this exact order:
     1. `(0, 0)` (no offset)
     2. `(-1, 0)` (1 cell left)

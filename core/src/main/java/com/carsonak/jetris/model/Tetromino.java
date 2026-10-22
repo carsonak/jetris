@@ -1,15 +1,15 @@
 package com.carsonak.jetris.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents the 7 standard Tetris pieces using normalized top-left local coordinates.
+ * The seven standard Tetris shapes, with four precomputed clockwise orientations.
  *
- * <p>NOTE (Design Update): We removed {@code int[][] getBaseShape()} so internal matrix padding
- * (blank rows/columns) is never exposed. Instead, each Tetromino stores its 4 solid block
- * coordinates in rotation 0 flushed to the top-left origin ({@code minX = 0, minY = 0}) via {@link
- * #getBaseCells()}, along with its base bounding dimensions {@link #getWidth()} and {@link
- * #getHeight()}.
+ * <p>Local coordinates use a top-left origin, with x increasing rightward and y increasing
+ * downward. Each orientation is normalized independently so its minimum x and y are both zero.
+ * Rotation uses (x, y) -> (-y, x) followed by normalization. Symmetric shapes still have four
+ * rotation indices.
  */
 public enum Tetromino {
   I(List.of(new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0)), 0x00FFFFff),
@@ -20,24 +20,66 @@ public enum Tetromino {
   J(List.of(new Point(0, 0), new Point(0, 1), new Point(1, 1), new Point(2, 1)), 0x0000FFff),
   L(List.of(new Point(2, 0), new Point(0, 1), new Point(1, 1), new Point(2, 1)), 0xFFA500ff);
 
-  private final List<Point> baseCells;
+  private final List<List<Point>> orientations;
   private final int width;
   private final int height;
   private final int rgbaColor;
 
   Tetromino(List<Point> baseCells, int rgbaColor) {
-    this.baseCells = List.copyOf(baseCells);
-    this.width = baseCells.stream().mapToInt(Point::x).max().orElse(0) + 1;
-    this.height = baseCells.stream().mapToInt(Point::y).max().orElse(0) + 1;
+    width = baseCells.stream().mapToInt(Point::x).max().orElse(0) + 1;
+    height = baseCells.stream().mapToInt(Point::y).max().orElse(0) + 1;
     this.rgbaColor = rgbaColor;
+
+    // Calculate and cache the 4 rotated variations of a piece.
+
+    var cells = new ArrayList<ArrayList<Point>>(4);
+
+    cells.add(new ArrayList<>(baseCells));
+    for (int rotationIndex = 1; rotationIndex < 4; rotationIndex++) {
+      final var previousRotation = cells.get(rotationIndex - 1);
+      final var currentRotation = new ArrayList<Point>(4);
+      int minX = 0, minY = 0;
+
+      for (int i = 0; i < previousRotation.size(); i++) {
+        final var pos = previousRotation.get(i);
+        final int x = -pos.y(), y = pos.x();
+
+        currentRotation.add(new Point(x, y));
+        if (x < minX) {
+          minX = x;
+        }
+
+        if (y < minY) {
+          minY = y;
+        }
+      }
+
+      // Normalise piece to the origin.
+      for (int i = 0; i < currentRotation.size(); i++) {
+        final var pos = currentRotation.get(i);
+
+        currentRotation.set(i, new Point(pos.x() - minX, pos.y() - minY));
+      }
+
+      cells.add(currentRotation);
+    }
+
+    orientations = cells.stream().map(rotation -> List.copyOf(rotation)).toList();
   }
 
   /**
-   * Returns the unmodifiable list of 4 local {@link Point} coordinates for this piece in its
-   * default orientation (rotation 0), normalized so that {@code minX == 0} and {@code minY == 0}.
+   * Returns four distinct, unmodifiable local cells for the requested orientation.
+   *
+   * <p>The index is reduced modulo four using {@link Math#floorMod(int, int)}, including negative
+   * indices. Zero is the spawn orientation; increasing indices represent clockwise quarter turns.
+   * Cell ordering is unspecified. The returned cells have no board-position offset.
+   *
+   * @param rotationIndex number of clockwise quarter turns, which may be any integer.
+   * @return the normalized cells of the selected orientation.
    */
-  public List<Point> getBaseCells() {
-    return baseCells;
+  public List<Point> getCells(int rotationIndex) {
+    rotationIndex = Math.floorMod(rotationIndex, 4);
+    return orientations.get(rotationIndex);
   }
 
   /** Returns the horizontal width of this piece in its default orientation (rotation 0). */
@@ -50,6 +92,7 @@ public enum Tetromino {
     return height;
   }
 
+  /** Returns this shape's packed RGBA8888 color, with red in the most significant byte. */
   public int getRgbaColor() {
     return rgbaColor;
   }
