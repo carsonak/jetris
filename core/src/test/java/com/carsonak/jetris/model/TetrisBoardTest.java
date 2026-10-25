@@ -260,47 +260,8 @@ class TetrisBoardTest {
       board.hardDrop();
       assertThat(board.getLockedBlockAt(0, 18)).isEqualTo(Tetromino.I);
 
-      // Piece 2: T-piece rotated to rotation 1 (2x3, pointing right), moved to x = 0, dropped to y
-      // = 15 (just above locked I at col 0, rows 16..19).
-      // Better yet: drop O-piece at cols 0, 1 (rows 18, 19), then bring T in rotation 3 (2x3:
-      // occupies (x, y+1), (x+1, y), (x+1, y+1), (x+1, y+2)) to x = 1, y = 17!
-      // At x = 1, y = 17, T in rotation 1 occupies: (1, 17), (1, 18), (2, 18), (1, 19).
-      // Wait: with locked I at col 0 (rows 16..19), if T in rotation 0 (3x2) is at x = 0, y = 14,
-      // what if T is at x = 0, y = 16 in rotation 3? In rotation 3 at x = 0, y = 16, it occupies
-      // (1, 16), (0, 17), (1, 17), (1, 18) -> (0, 17) overlaps locked I!
-      // Whereas T in rotation 3 at x = 1, y = 16 occupies (2, 16), (1, 17), (2, 17), (2, 18) (all
-      // free!).
-      // What if we have locked I at col 1 (x = 1, rows 16..19), and vertical I at x = 0, y = 16?
-      // Let's trace: if T is at x = 0, y = 16 in rotation 1? No, col 0 is free!
-      // Suppose locked I is at col 0 (rows 16..19), and we bring a vertical I (1x4) to x = 1, y =
-      // 16? No, rotating at x = 1 doesn't overlap col 0 because normalized coordinates start at x!
-      // Wait: when does a normalized piece overlap a block and succeed with (+1, 0)?
-      // When its rotation at (0, 0) overlaps a locked block at `x` (or `x + 1`), AND `(-1, 0)` hits
-      // the left wall (or another locked block), while `(+1, 0)` is completely free!
-      // Let's trace that!
-      // Locked I is at col 0 (rows 16..19).
-      // Active piece T in rotation 3 (2x3: cells (1, 0), (0, 1), (1, 1), (1, 2)) is at x = 0, y =
-      // 15:
-      // At x = 0, y = 15, T rot 3 occupies:
-      //   (1, 15), (0, 16), (1, 16), (1, 17) -> Wait: (0, 16) is locked!
-      // What about T in rotation 3 at x = 0, y = 14?
-      //   Occupies: (1, 14), (0, 15), (1, 15), (1, 16) -> all 4 cells are FREE because locked I in
-      //   col 0 starts at row 16!
-      // Now tick T down 1 row? No, at y = 15, (0, 16) is blocked.
-      // What about J in rotation 3 (2x3: cells (1, 0), (1, 1), (0, 2), (1, 2))?
-      // Look at J in rotation 1 (2x3: cells (0, 0), (1, 0), (0, 1), (0, 2)) vs rotation 2 (3x2:
-      // cells (0, 0), (1, 0), (2, 0), (2, 1)) vs rotation 3 (cells (1, 0), (1, 1), (0, 2), (1,
-      // 2)):
-      // In rotation 2 at x = 0, y = 15:
-      //   J rot 2 occupies: (0, 15), (1, 15), (2, 15), (2, 16) -> ALL FREE (since col 0 row 15 is
-      //   above locked I at row 16..19)!
-      // Now rotate J clockwise from rotation 2 -> rotation 3 at x = 0, y = 15:
-      //   - Offset (0, 0) at (0, 15): J rot 3 needs (1, 15), (1, 16), (0, 17), (1, 17) -> collides
-      //     with locked I at (0, 17)!
-      //   - Offset (-1, 0) at (-1, 15): needs col -1 -> collides with left wall!
-      //   - Offset (+1, 0) at (1, 15): J rot 3 needs (2, 15), (2, 16), (1, 17), (2, 17) -> ALL
-      //     FREE!
-      // That's a 100% deterministic (+1, 0) kick!
+      // Use J at (0, 15), rotation 2, above a locked I in column 0, rows 16..19.
+      // Rotating to 3 hits the I at (0, 17); the left kick hits the wall, so (+1, 0) wins.
       TetrisBoard boardWithJ = new TetrisBoard(sequenceOf(Tetromino.I, Tetromino.J, Tetromino.O));
       boardWithJ.rotateClockwise();
       while (boardWithJ.moveLeft()) {

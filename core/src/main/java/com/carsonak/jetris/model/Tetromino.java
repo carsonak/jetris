@@ -4,21 +4,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The seven standard Tetris shapes, with four precomputed clockwise orientations.
+ * The seven standard Tetris shapes, with four precomputed clockwise
+ * orientations.
  *
- * <p>Local coordinates use a top-left origin, with x increasing rightward and y increasing
- * downward. Each orientation is normalized independently so its minimum x and y are both zero.
- * Rotation uses (x, y) -> (-y, x) followed by normalization. Symmetric shapes still have four
+ * <p>
+ * Local coordinates use a top-left origin, with x increasing rightward and y
+ * increasing
+ * downward. Each orientation is normalized independently so its minimum x and y
+ * are both zero.
+ * Rotation uses (x, y) -> (-y, x) followed by normalization. Symmetric shapes
+ * still have four
  * rotation indices.
  */
 public enum Tetromino {
   I(List.of(new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0)), 0x00FFFFff),
   O(List.of(new Point(0, 0), new Point(1, 0), new Point(0, 1), new Point(1, 1)), 0xFFFF00ff),
-  T(List.of(new Point(1, 0), new Point(0, 1), new Point(1, 1), new Point(2, 1)), 0x800080ff),
+  T(List.of(new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(1, 1)), 0x800080ff),
   S(List.of(new Point(1, 0), new Point(2, 0), new Point(0, 1), new Point(1, 1)), 0x00FF00ff),
   Z(List.of(new Point(0, 0), new Point(1, 0), new Point(1, 1), new Point(2, 1)), 0xFF0000ff),
-  J(List.of(new Point(0, 0), new Point(0, 1), new Point(1, 1), new Point(2, 1)), 0x0000FFff),
-  L(List.of(new Point(2, 0), new Point(0, 1), new Point(1, 1), new Point(2, 1)), 0xFFA500ff);
+  J(List.of(new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(2, 1)), 0x0000FFff),
+  L(List.of(new Point(0, 1), new Point(0, 0), new Point(1, 0), new Point(2, 0)), 0xFFA500ff);
 
   private final List<List<Point>> orientations;
   private final int width;
@@ -68,13 +73,19 @@ public enum Tetromino {
   }
 
   /**
-   * Returns four distinct, unmodifiable local cells for the requested orientation.
+   * Returns four distinct, unmodifiable local cells for the requested
+   * orientation.
    *
-   * <p>The index is reduced modulo four using {@link Math#floorMod(int, int)}, including negative
-   * indices. Zero is the spawn orientation; increasing indices represent clockwise quarter turns.
-   * Cell ordering is unspecified. The returned cells have no board-position offset.
+   * <p>
+   * The index is reduced modulo four using {@link Math#floorMod(int, int)},
+   * including negative
+   * indices. Zero is the spawn orientation; increasing indices represent
+   * clockwise quarter turns.
+   * Cell ordering is unspecified. The returned cells have no board-position
+   * offset.
    *
-   * @param rotationIndex number of clockwise quarter turns, which may be any integer.
+   * @param rotationIndex number of clockwise quarter turns, which may be any
+   *                      integer.
    * @return the normalized cells of the selected orientation.
    */
   public List<Point> getCells(int rotationIndex) {
@@ -82,17 +93,26 @@ public enum Tetromino {
     return orientations.get(rotationIndex);
   }
 
-  /** Returns the horizontal width of this piece in its default orientation (rotation 0). */
+  /**
+   * Returns the horizontal width of this piece in its default orientation
+   * (rotation 0).
+   */
   public int getWidth() {
     return width;
   }
 
-  /** Returns the vertical height of this piece in its default orientation (rotation 0). */
+  /**
+   * Returns the vertical height of this piece in its default orientation
+   * (rotation 0).
+   */
   public int getHeight() {
     return height;
   }
 
-  /** Returns this shape's packed RGBA8888 color, with red in the most significant byte. */
+  /**
+   * Returns this shape's packed RGBA8888 color, with red in the most significant
+   * byte.
+   */
   public int getRgbaColor() {
     return rgbaColor;
   }

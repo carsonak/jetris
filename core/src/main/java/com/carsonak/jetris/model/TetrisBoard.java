@@ -1,5 +1,7 @@
 package com.carsonak.jetris.model;
 
+import java.util.List;
+
 /**
  * Core headless implementation of {@link GameEngine} and {@link BoardState}.
  *
@@ -26,13 +28,41 @@ public class TetrisBoard implements GameEngine {
   public static final int DEFAULT_WIDTH = 10;
   public static final int DEFAULT_HEIGHT = 20;
 
+  private final int width;
+  private final int height;
+  private final boolean[][] board;
+  private final PieceGenerator pieceGenerator;
+  private ActivePiece activePiece;
+  private Tetromino nextPiece;
+  private int score = 0;
+  private int clearedLines = 0;
+  private boolean gameIsOver = false;
+
   public TetrisBoard(PieceGenerator pieceGenerator) {
     this(DEFAULT_WIDTH, DEFAULT_HEIGHT, pieceGenerator);
   }
 
-  public TetrisBoard(int width, int height, PieceGenerator pieceGenerator) {
-    // TODO: Initialize board dimensions, grid, pieceGenerator, and spawn initial active + preview
-    // pieces.
+  public TetrisBoard(int width, int height, PieceGenerator pieceGenerator) throws IllegalArgumentException {
+    if (width < 5 || height < 6) {
+      throw new IllegalArgumentException(
+          "Minimum board dimensions are width = 4 and height = 5, got width = " + width + " and height = " + height);
+    }
+
+    if (pieceGenerator == null) {
+      throw new IllegalArgumentException("`pieceGenerator` cannot be null");
+    }
+
+    this.width = width;
+    this.height = height;
+    board = new boolean[height][width];
+    this.pieceGenerator = pieceGenerator;
+    nextPiece = pieceGenerator.nextPiece();
+    spawnPiece();
+  }
+
+  private void spawnPiece() {
+    activePiece = new ActivePiece(nextPiece, width / 2, 0, 0);
+    nextPiece = pieceGenerator.nextPiece();
   }
 
   @Override
@@ -44,14 +74,29 @@ public class TetrisBoard implements GameEngine {
 
   @Override
   public boolean moveLeft() {
-    // TODO: Attempt to move active piece by (-1, 0).
-    throw new UnsupportedOperationException("Not implemented");
+    return shiftActivePiece(-1, 0);
   }
 
   @Override
   public boolean moveRight() {
-    // TODO: Attempt to move active piece by (+1, 0).
-    throw new UnsupportedOperationException("Not implemented");
+    return shiftActivePiece(1, 0);
+  }
+
+  private boolean shiftActivePiece(final int dx, final int dy) {
+    final var projection = activePiece.moveBy(dx, dy);
+
+    for (var block : projection.getOccupiedCells()) {
+      final int x = block.x();
+      final int y = block.y();
+
+      if (x < 0 || x >= width || y >= height || board[x][y] == true) {
+        return false;
+      }
+
+    }
+
+    activePiece = projection;
+    return true;
   }
 
   @Override
@@ -68,10 +113,29 @@ public class TetrisBoard implements GameEngine {
     throw new UnsupportedOperationException("Not implemented");
   }
 
+  private int updateBoard(final List<Point> cells) {
+    int clearedLines = 0;
+
+    for (var c : cells) {
+      board[c.x()][c.y()] = true;
+    }
+
+    // TODO: Clear complete lines and shift locked rows down
+
+    return clearedLines;
+  }
+
   @Override
   public void softDrop() {
     // TODO: Move piece down 1 row; if blocked, lock immediately and spawn next piece.
-    throw new UnsupportedOperationException("Not implemented");
+    if (shiftActivePiece(0, 1)) {
+      return;
+    }
+
+    final int clearedLines = updateBoard(activePiece.getOccupiedCells());
+
+    // TODO: Update score
+    spawnPiece();
   }
 
   @Override
@@ -88,12 +152,12 @@ public class TetrisBoard implements GameEngine {
 
   @Override
   public int getWidth() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return width;
   }
 
   @Override
   public int getHeight() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return height;
   }
 
   @Override
@@ -103,26 +167,26 @@ public class TetrisBoard implements GameEngine {
 
   @Override
   public ActivePiece getActivePiece() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return activePiece;
   }
 
   @Override
   public Tetromino getNextPiecePreview() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return nextPiece;
   }
 
   @Override
   public int getScore() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return score;
   }
 
   @Override
   public int getLinesCleared() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return clearedLines;
   }
 
   @Override
   public boolean isGameOver() {
-    throw new UnsupportedOperationException("Not Implemented");
+    return gameIsOver;
   }
 }
