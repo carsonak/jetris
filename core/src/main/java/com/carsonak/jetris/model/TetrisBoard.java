@@ -48,10 +48,14 @@ public class TetrisBoard implements GameEngine {
     this(DEFAULT_WIDTH, DEFAULT_HEIGHT, pieceGenerator);
   }
 
-  public TetrisBoard(int width, int height, PieceGenerator pieceGenerator) throws IllegalArgumentException {
+  public TetrisBoard(int width, int height, PieceGenerator pieceGenerator)
+      throws IllegalArgumentException {
     if (width < 5 || height < 6) {
       throw new IllegalArgumentException(
-          "Minimum board dimensions are width = 4 and height = 5, got width = " + width + " and height = " + height);
+          "Minimum board dimensions are width = 4 and height = 5, got width = "
+              + width
+              + " and height = "
+              + height);
     }
 
     if (pieceGenerator == null) {
@@ -98,7 +102,6 @@ public class TetrisBoard implements GameEngine {
       if (x < 0 || x >= width || y >= height || board[x][y] == true) {
         return false;
       }
-
     }
 
     activePiece = projection;
