@@ -19,5 +19,9 @@ public interface BoardState {
 
   int getLinesCleared();
 
+  /**
+   * True after a gravity tick finds unresolved overlap, until reset. Spawn overlap alone does not
+   * end the game: movement and rotation may rescue the piece before its first tick.
+   */
   boolean isGameOver();
 }

@@ -16,6 +16,9 @@
 
 ## 3. Coordinate System & Domain Conventions
 
+The authoritative gameplay contract is [docs/game-rules.md](docs/game-rules.md).
+Track pending implementation in [docs/implementation-plan.md](docs/implementation-plan.md).
+
 - **Board Dimensions:** Standard grid is `width = 10` columns (`x` from `0` to `9`), `height = 20` rows (`y` from `0` to `19`).
 - **Origin `(0, 0)`:** Top-left corner of the board.
   - Moving **Right** increases `x` (`+1`).
@@ -35,10 +38,13 @@
     4. `(-2, 0)` (2 cells left — e.g., `Tetromino.I` against right wall)
     5. `(+2, 0)` (2 cells right — e.g., `Tetromino.I` against left wall)
     6. `(0, -1)` (1 cell up — floor kick)
-  - Pick the **first** offset where all occupied cells are within board bounds (`0 <= x < width`, `0 <= y < height`) and do not overlap any locked blocks (`rotateClockwise()` / `rotateAnticlockwise()` updates `activePiece` and returns `true`). If all 6 offsets collide, the rotation is rejected (`false` and state is unchanged).
+  - Pick the **first** offset where all occupied cells are within board bounds (`0 <= x < width`, `0 <= y < height`) and do not overlap any locked blocks (`rotateClockwise()` / `rotateAnticlockwise()` updates `activePiece` and returns `true`). If all 6 offsets collide, the rotation is rejected (`false` and state is unchanged). Validate destination cells only; do not check swept paths or stop after a blocked earlier candidate.
 - **Spawning & Game Over:**
   - New pieces spawn at top-center: `x = (width - type.getWidth()) / 2`, `y = 0`, `rotationIndex = 0`.
-  - If a newly spawned piece immediately overlaps an existing locked block on the board, `isGameOver()` becomes `true` and further movement/ticks are ignored until `reset()` is called.
+  - Spawn overlap allows recovery through ordinary horizontal movement or rotation before the first gravity tick. Every accepted action must produce a completely clear, in-bounds destination; rejected actions preserve state.
+  - While overlap remains, soft and hard drops are no-ops. On `tick()`, check current overlap **before** moving downward: unresolved overlap triggers game over without locking or changing grid/score/lines/preview/generator state. Otherwise move down or lock, clear, score, and spawn normally; do not tick the next piece in the same call.
+  - The view starts a full gravity interval on every spawn, discarding the previous piece's elapsed time. Recovery inputs do not restart it. The model remains clock-free.
+  - After game over, movement/rotation return `false` and ticks/drops are ignored until `reset()`. IRS, SRS, T-spin scoring, and difficulty progression remain deferred.
 - **Line Clearing & Scoring:**
   - When a piece locks, any completely filled horizontal rows are cleared and all rows above them shift down (`+1` in `y`).
   - **4-Line Maximum Invariant & Fixed Scoring:** Because the tallest standard `Tetromino` (`I`) has a maximum height of 4 blocks, a single piece lock can clear at most 4 lines (`0 <= linesCleared <= 4`). Standard fixed scoring per clear event:

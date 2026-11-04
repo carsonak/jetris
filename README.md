@@ -1,5 +1,9 @@
 # Jetris
 
+Gameplay contracts are documented in [Game rules](docs/game-rules.md).
+See the [implementation plan](docs/implementation-plan.md) for pending model and
+view work. Tests describe the target behavior while implementation is in progress.
+
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
 This project was generated with a template including simple application launchers and a main class extending `Game` that sets the first screen.
