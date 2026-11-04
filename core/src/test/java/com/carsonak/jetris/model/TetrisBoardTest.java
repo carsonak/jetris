@@ -611,9 +611,26 @@ class TetrisBoardTest {
   class GameOverAndResetTests {
 
     @Test
+    void tickThatLocksPreviousPieceMustLeaveNewSpawnRecoverableUntilNextTick() {
+      TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O));
+      for (int i = 0; i < 9; i++) {
+        board.hardDrop();
+      }
+
+      // The tenth O is already at rest above the stack. This tick locks it at rows 0 and 1.
+      board.tick();
+
+      assertThat(board.getLockedBlockAt(4, 0)).isEqualTo(Tetromino.O);
+      assertThat(board.getActivePiece()).isEqualTo(new ActivePiece(Tetromino.O, 4, 0, 0));
+      assertThat(board.isGameOver()).isFalse();
+      board.tick();
+      assertThat(board.isGameOver()).isTrue();
+    }
+
+    @Test
     @DisplayName(
-        "Spawning a piece that immediately overlaps a locked block should trigger isGameOver() = true")
-    void shouldTriggerGameOverWhenSpawnedPieceOverlapsLockedBlocks() {
+        "Spawn overlap allows recovery until the first tick, which ends the game if unresolved")
+    void shouldTriggerGameOverOnFirstTickWhenSpawnOverlapRemains() {
       // Stack 10 O-pieces at the center (cols 4, 5): each O-piece is 2 rows tall, filling rows
       // 19..0
       TetrisBoard board = new TetrisBoard(sequenceOf(Tetromino.O));
@@ -628,7 +645,16 @@ class TetrisBoardTest {
       // 10th O-piece locks at rows 0 and 1; the 11th O-piece spawns at (4, 0) overlapping (4, 0)
       board.hardDrop();
 
+      assertThat(board.isGameOver()).isFalse();
+      ActivePiece overlappingPiece = board.getActivePiece();
+      Tetromino preview = board.getNextPiecePreview();
+      board.tick();
+
       assertThat(board.isGameOver()).isTrue();
+      assertThat(board.getActivePiece()).isEqualTo(overlappingPiece);
+      assertThat(board.getNextPiecePreview()).isEqualTo(preview);
+      assertThat(board.getScore()).isZero();
+      assertThat(board.getLinesCleared()).isZero();
     }
 
     @Test
@@ -639,6 +665,7 @@ class TetrisBoardTest {
       for (int i = 0; i < 10; i++) {
         board.hardDrop();
       }
+      board.tick();
       assertThat(board.isGameOver()).isTrue();
 
       ActivePiece pieceAtGameOver = board.getActivePiece();

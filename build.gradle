@@ -27,7 +27,7 @@ checkstyle {
 spotless {
     java {
         target 'core/src/**/*.java', 'lwjgl3/src/**/*.java', 'teavm/src/**/*.java'
-        googleJavaFormat('1.22.0')
+        googleJavaFormat('1.30.0')
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

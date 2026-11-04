@@ -80,7 +80,7 @@ Always run commands from the repository root using `./gradlew`:
 - **Format all Java files (Google Java Format):** `./gradlew spotlessApply`
 - **Check formatting & Checkstyle linter:** `./gradlew check`
 - **Run Desktop build:** `./gradlew lwjgl3:run`
-- **Build Web (TeaVM) bundle:** `./gradlew teavm:build` (outputs to `teavm/build/dist/webapp/`)
+- **Build Web (TeaVM) bundle:** `./gradlew teavm:build` (outputs to `teavm/build/dist/wasm/release/webapp/`)
 - **Stop running Gradle daemons:** `./gradlew --stop`
 
 > [!NOTE]
@@ -90,7 +90,7 @@ Always run commands from the repository root using `./gradlew`:
 
 - **Java Version:** Java 17 (use `record`, enhanced `switch` expressions, and immutable value objects where appropriate).
 - **Testing Stack:** JUnit 5 (`org.junit.jupiter.api.*`) + AssertJ (`org.assertj.core.api.Assertions.assertThat`). Prefer fluent AssertJ assertions (`assertThat(actual).isEqualTo(expected)`) over basic JUnit assertions.
-- **Formatting:** Enforced by Spotless (`googleJavaFormat('1.22.0')`, 2-space indentation). Always run `./gradlew spotlessApply` after generating or editing code.
+- **Formatting:** Enforced by Spotless (`googleJavaFormat('1.30.0')`, 2-space indentation). Always run `./gradlew spotlessApply` after generating or editing code.
 
 ## 7. Version Control & Git Guidelines
 
